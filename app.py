@@ -4,6 +4,7 @@ from typing import Any
 import dash
 import dash_bootstrap_components as dbc
 import dash_mantine_components as dmc
+from dash_iconify import DashIconify
 
 def build_games_tree() -> list[dict[str, Any]]:
     """
@@ -63,7 +64,8 @@ home_layout = dbc.Container(
                         [
                             html.H1("Home", className="mb-2"),
                         ]
-                    )
+                    ),
+                    id="title-card",
                 ),
                 width=12,
             ),
@@ -94,7 +96,34 @@ home_layout = dbc.Container(
 register_page(__name__, path="/", name="Home", layout=home_layout)
 
 app.layout = dmc.MantineProvider(
-    dbc.Container([dash.page_container], fluid=True)
+    dbc.Container(
+        [
+            dbc.Row(
+                dbc.Col(
+                    html.Div(
+                        dmc.ColorSchemeToggle(
+                            id="theme-toggle",
+                            lightIcon=DashIconify(
+                                icon="radix-icons:sun",
+                                width=15,
+                                color="var(--mantine-color-yellow-8)",
+                            ),
+                            darkIcon=DashIconify(
+                                icon="radix-icons:moon",
+                                width=15,
+                                color="var(--mantine-color-yellow-6)",
+                            ),
+                            size="lg",
+                        ),
+                        className="d-flex justify-content-end py-3",
+                    ),
+                    width=12,
+                )
+            ),
+            dash.page_container,
+        ],
+        fluid=True,
+    )
 )
 
 
