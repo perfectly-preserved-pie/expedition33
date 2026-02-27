@@ -53,18 +53,42 @@ app = dash.Dash(
     suppress_callback_exceptions=True,  # tree lives in page layout, not top-level
 )
 
-home_layout = html.Div(
+home_layout = dbc.Container(
     [
         dcc.Location(id="url"),
-        html.H1("Home"),
-        html.P("Select a game to explore:"),
-        dmc.Tree(
-            id="games-tree",
-            data=build_games_tree(),
-            selectOnClick=True,
-            clearSelectionOnOutsideClick=True,
+        dbc.Row(
+            dbc.Col(
+                dbc.Card(
+                    dbc.CardBody(
+                        [
+                            html.H1("Home", className="mb-2"),
+                        ]
+                    )
+                ),
+                width=12,
+            ),
+            className="mt-4 mb-3",
         ),
-    ]
+        dbc.Row(
+            dbc.Col(
+                dbc.Card(
+                    dbc.CardBody(
+                        [
+                            html.P("Select a game to explore:", className="mb-0"),
+                            dmc.Tree(
+                                id="games-tree",
+                                data=build_games_tree(),
+                                selectOnClick=True,
+                                clearSelectionOnOutsideClick=True,
+                            )
+                        ]
+                    )
+                ),
+                width=12,
+            )
+        ),
+    ],
+    fluid=True,
 )
 
 register_page(__name__, path="/", name="Home", layout=home_layout)
