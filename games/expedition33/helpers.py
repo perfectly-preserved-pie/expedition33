@@ -43,13 +43,17 @@ def build_column_defs(frame: pd.DataFrame) -> list[dict[str, Any]]:
     column_defs: list[dict[str, Any]] = []
     for column in frame.columns:
         numeric_col = is_numeric_dtype(frame[column])
-        column_defs.append(
-            {
-                "field": column,
-                "headerName": column,
-                "filter": "agNumberColumnFilter" if numeric_col else "agTextColumnFilter",
-            }
-        )
+        col_def: dict[str, Any] = {
+            "field": column,
+            "headerName": column,
+            "filter": "agNumberColumnFilter" if numeric_col else "agTextColumnFilter",
+        }
+
+        # custom comparator for the "Game Description" column to sort by difficulty rank instead of alphabetically
+        if column == "Game Description":
+            col_def["comparator"] = {"function": "gameDescriptionComparator"}
+
+        column_defs.append(col_def)
     return column_defs
 
 
