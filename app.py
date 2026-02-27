@@ -117,8 +117,17 @@ app.layout = dmc.MantineProvider(
     dbc.Container(
         [
             dbc.Row(
-                dbc.Col(
-                    html.Div(
+                [
+                    dbc.Col(
+                        dcc.Link(
+                            dbc.Button("Home", color="secondary", outline=True, className="py-1"),
+                            href="/",
+                            refresh=False,
+                        ),
+                        width="auto",
+                        className="py-3",
+                    ),
+                    dbc.Col(
                         dmc.ColorSchemeToggle(
                             id="theme-toggle",
                             lightIcon=DashIconify(
@@ -133,10 +142,10 @@ app.layout = dmc.MantineProvider(
                             ),
                             size="lg",
                         ),
-                        className="d-flex justify-content-end py-3",
+                        width="auto",
+                        className="ms-auto d-flex align-items-center py-3",
                     ),
-                    width=12,
-                )
+                ]
             ),
             dash.page_container,
         ],
