@@ -1,11 +1,12 @@
-// Mirror Mantine's color scheme onto Bootstrap's theme attribute.
-(function syncBootstrapTheme() {
+// Mirror Mantine's color scheme onto Bootstrap and AG Grid theme attributes.
+(function syncMantineDrivenThemes() {
   const root = document.documentElement;
 
   const applyTheme = () => {
     const scheme = root.getAttribute("data-mantine-color-scheme");
     if (scheme === "dark" || scheme === "light") {
       root.setAttribute("data-bs-theme", scheme);
+      root.setAttribute("data-ag-theme-mode", scheme);
     }
   };
 

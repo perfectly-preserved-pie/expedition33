@@ -245,14 +245,29 @@ zones = [
     }
 ]
 
+ag_grid_theme = {
+    "function": (
+        "themeQuartz.withParams({"
+        "accentColor: 'var(--mantine-primary-color-filled)', "
+        "backgroundColor: 'var(--mantine-color-body)', "
+        "foregroundColor: 'var(--mantine-color-text)', "
+        "fontFamily: 'var(--mantine-font-family)', "
+        "headerFontWeight: 600"
+        "})"
+    )
+}
+
 grid = dag.AgGrid(
     rowData=zones,
     columnDefs=[
         {"field": "name", "headerName": "Zone", "filter": "agTextColumnFilter"},
         {"field": "level", "headerName": "Level", "filter": "agNumberColumnFilter"},
     ],
-    defaultColDef={"filter": True, "sortable": True, "resizable": True},   
-    dashGridOptions = {"domLayout": "autoHeight"}, # Fill the height of the grid to fit the number of rows
+    defaultColDef={"filter": True, "sortable": True, "resizable": True},
+    dashGridOptions={
+        "domLayout": "autoHeight",
+        "theme": ag_grid_theme,
+    },  # Fill the height of the grid to fit the number of rows
 )
 
 layout = html.Div(
