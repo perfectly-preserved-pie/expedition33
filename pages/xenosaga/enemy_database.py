@@ -3,12 +3,10 @@ from assets.xenosaga.load_sqlite_database import load_sqlite_database
 from dash import Input, Output, State, callback, callback_context, dcc, html, no_update, register_page
 from dash_iconify import DashIconify
 from dash.exceptions import PreventUpdate
-from pandas.api.types import is_numeric_dtype
+from pages.xenosaga.helpers import apply_element_style, build_column_defs, format_value, load_episode_rows
 import dash_ag_grid as dag
 import dash_bootstrap_components as dbc
-import json
 import pandas as pd
-import sqlite3
 
 EPISODE_TABS = {
     "ep1": {"label": "Episode I", "table": "episode1"},
@@ -30,52 +28,6 @@ ag_grid_theme = {
         "})"
     )
 }
-
-
-def load_episode_rows(connection: sqlite3.Connection, table_name: str) -> pd.DataFrame:
-    frame = pd.read_sql_query(f'SELECT * FROM "{table_name}"', connection)
-    if "uuid" in frame.columns:
-        frame = frame.drop(columns=["uuid"])
-    frame = frame.sort_values(by=["Name"], na_position="last")
-    return frame
-
-
-def build_column_defs(frame: pd.DataFrame) -> list[dict]:
-    # Determine if a column is numeric using dtype first, then sampled values.
-    def is_numeric_col(column_name: str) -> bool:
-        if is_numeric_dtype(frame[column_name].dtype):
-            return True
-
-        non_na_values = frame[column_name].dropna()
-        if non_na_values.empty:
-            return False
-
-        sample_values = non_na_values.sample(min(100, len(non_na_values)), random_state=0).tolist()
-        try:
-            for value in sample_values:
-                first_part = str(value).split("-")[0].strip().replace(",", "")
-                float(first_part)
-            return True
-        except (TypeError, ValueError):
-            return False
-
-    column_defs: list[dict] = []
-    for field in frame.columns:
-        numeric_col = is_numeric_col(field)
-        col_def = {
-            "field": field,
-            "filter": "agNumberColumnFilter" if numeric_col else "agTextColumnFilter",
-        }
-        if numeric_col:
-            field_name = json.dumps(field)
-            col_def["valueGetter"] = {"function": f"extractRangeStart(params, {field_name})"}
-            col_def["valueFormatter"] = {"function": "formatNumberWithCommas(params)"}
-        if field == "Name":
-            col_def["pinned"] = "left"
-        column_defs.append(col_def)
-    return column_defs
-
-
 with load_sqlite_database() as conn:
     episode_frames = {tab_id: load_episode_rows(conn, cfg["table"]) for tab_id, cfg in EPISODE_TABS.items()}
 
@@ -166,44 +118,6 @@ layout = html.Div(
 def update_grid_for_episode(active_tab: str) -> tuple[list[dict], list[dict]]:
     payload = episode_payloads.get(active_tab) or episode_payloads["ep1"]
     return payload["rowData"], payload["columnDefs"]
-
-
-def format_value(value) -> str:
-    if value is None:
-        return "N/A"
-    if isinstance(value, str) and value == "":
-        return "N/A"
-    if not isinstance(value, str) and pd.isna(value):
-        return "N/A"
-    try:
-        numeric_value = float(value)
-        if numeric_value.is_integer():
-            return f"{int(numeric_value):,}"
-        return f"{numeric_value:,}"
-    except (ValueError, TypeError):
-        return str(value)
-
-
-def apply_element_style(text: str):
-    color_styles = {
-        "Lightning": "yellow",
-        "Fire": "red",
-        "Ice": "lightblue",
-        "Yes": "green",
-        "No": "red",
-        "Cannot": "red",
-    }
-    parts = text.split(", ")
-    spans = []
-    for i, part in enumerate(parts):
-        color = color_styles.get(part)
-        if color:
-            spans.append(html.Span(part, style={"color": color}))
-        else:
-            spans.append(html.Span(part))
-        if i < len(parts) - 1:
-            spans.append(", ")
-    return spans
 
 
 @callback(
