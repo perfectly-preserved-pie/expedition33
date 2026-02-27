@@ -127,10 +127,10 @@ def update_grid_for_episode(active_tab: str) -> tuple[list[dict], list[dict]]:
     Input("xenosaga-grid", "cellClicked"),
     Input("xenosaga-close", "n_clicks"),
     State("xenosaga-modal", "is_open"),
-    State("xenosaga-grid", "rowData"),
+    State("xenosaga-grid", "virtualRowData"),
     prevent_initial_call=True,
 )
-def open_and_populate_modal(cell_clicked_data, close_btn_clicks, modal_open, grid_data):
+def open_and_populate_modal(cell_clicked_data, close_btn_clicks, modal_open, virtual_row_data):
     ctx = callback_context
     if not ctx.triggered:
         raise PreventUpdate
@@ -145,8 +145,13 @@ def open_and_populate_modal(cell_clicked_data, close_btn_clicks, modal_open, gri
 
     selected_row = cell_clicked_data.get("data")
     row_index = cell_clicked_data.get("rowIndex")
-    if selected_row is None and isinstance(row_index, int) and grid_data and 0 <= row_index < len(grid_data):
-        selected_row = grid_data[row_index]
+    if (
+        selected_row is None
+        and isinstance(row_index, int)
+        and virtual_row_data
+        and 0 <= row_index < len(virtual_row_data)
+    ):
+        selected_row = virtual_row_data[row_index]
 
     if not selected_row:
         raise PreventUpdate
