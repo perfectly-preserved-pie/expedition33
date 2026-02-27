@@ -49,9 +49,11 @@ def build_games_tree() -> list[dict[str, Any]]:
 # create the Dash app with the builtin pages support
 app = dash.Dash(
     __name__,
-    use_pages=True,
-    external_stylesheets=[dbc.themes.BOOTSTRAP, *dmc.styles.ALL],
+    description="An index of resources for various games.",
+    external_stylesheets=[dbc.themes.BOOTSTRAP],
     suppress_callback_exceptions=True,  # tree lives in page layout, not top-level
+    title="Ludex",
+    use_pages=True,
 )
 
 dmc.pre_render_color_scheme()
