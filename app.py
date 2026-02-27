@@ -62,7 +62,11 @@ home_layout = dbc.Container(
                 dbc.Card(
                     dbc.CardBody(
                         [
-                            html.H1("Home", className="mb-2"),
+                            html.H1("Ludex", className="mb-2"),
+                            html.P(
+                                html.Em('Latin "ludus" (game) + dex (index)'),
+                                className="mb-0",
+                            ),
                         ]
                     ),
                     id="title-card",
