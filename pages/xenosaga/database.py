@@ -8,6 +8,7 @@ import dash_bootstrap_components as dbc
 import json
 import pandas as pd
 import sqlite3
+from dash_iconify import DashIconify
 
 DATA_DIR = Path(__file__).resolve().parents[2] / "assets" / "xenosaga"
 DB_PATH = DATA_DIR / "xenosaga.db"
@@ -103,7 +104,7 @@ title_card = dbc.Card(
             style={"margin-bottom": "0px"},
         ),
         html.I(
-            className="bi bi-github",
+            children=[DashIconify(icon="octicon:mark-github-16")],
             style={
                 "margin-right": "5px",
                 "margin-left": "0px",
