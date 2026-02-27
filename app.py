@@ -90,6 +90,7 @@ home_layout = dbc.Container(
                                 data=build_games_tree(),
                                 selectOnClick=True,
                                 clearSelectionOnOutsideClick=True,
+                                expanded="*",  # expand all by default
                             )
                         ]
                     )
