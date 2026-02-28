@@ -7,12 +7,12 @@ import dash_ag_grid as dag
 import dash_bootstrap_components as dbc
 
 TAB_CONFIG = [
-    {"tab_id": "maelle", "label": "Maelle"},
+    {"tab_id": "gustave", "label": "Gustave"},
     {"tab_id": "lune", "label": "Lune"},
+    {"tab_id": "maelle", "label": "Maelle"},
     {"tab_id": "monoco", "label": "Monoco"},
     {"tab_id": "sciel", "label": "Sciel"},
     {"tab_id": "verso", "label": "Verso"},
-    {"tab_id": "gustave", "label": "Gustave"},
 ]
 
 CSV_DIR = Path(__file__).resolve().parents[2] / "assets" / "expedition33" / "clair_skill_damage"
