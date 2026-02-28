@@ -59,7 +59,7 @@ title_card = dbc.Card(
                 "margin-left": "0px",
             },
         ),
-        html.A("GitHub", href="https://github.com/perfectly-preserved-pie/expedition33/tree/main/pages/xenosaga", target="_blank"),
+        html.A("GitHub", href="https://github.com/perfectly-preserved-pie/ludex/tree/main/games/xenosaga", target="_blank"),
     ],
     body=True,
 )
