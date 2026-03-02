@@ -544,55 +544,67 @@ SCIEL_FORETELL_RATES = {
 }
 
 
+def effective_sciel_foretell(foretell: int, twilight: bool) -> int:
+    """Return Sciel's Twilight-adjusted foretell without imposing a global cap."""
+    if twilight:
+        return max(foretell, 0) * 2
+    return max(foretell, 0)
+
+
 def calculate_sciel(row: CalculatorRow, state: CalculatorState) -> CalculationResult:
     """Calculate Sciel skill damage from foretell, twilight, and life state."""
     skill = clean_text(row.get("Skill"))
     base_multiplier = number_from_row(row, "Damage Multi")
     conditional = number_from_row(row, "ConDmg")
     twilight_value = number_from_row(row, "TwilightDmg")
-    foretell = clamp_int(state.get("foretell"), 0, 30)
+    foretell = max(clamp_int(state.get("foretell"), 0, 999), 0)
     twilight = bool(state.get("twilight"))
     full_life = bool(state.get("full_life"))
+    effective_foretell = effective_sciel_foretell(foretell, twilight)
 
     if skill in SCIEL_FORETELL_RATES:
         rate = SCIEL_FORETELL_RATES[skill]
-        multiplier = (base_multiplier or 0) * (1 + (rate * foretell))
-        scenario = f"{foretell} Foretell"
+        multiplier = (base_multiplier or 0) * (1 + (rate * effective_foretell))
+        scenario = f"{effective_foretell} Twilight-effective Foretell" if twilight else f"{foretell} Foretell"
         source = "Derived from note text"
         if twilight:
             multiplier *= 1.5
-            scenario = f"{scenario}, Twilight"
+            scenario = f"{scenario} from {foretell} applied Foretell, Twilight"
             source = "Derived from note text + Twilight"
         return result(round(multiplier, 2), scenario, source)
 
     if skill == "Our Sacrifice":
-        multiplier = (base_multiplier or 0) * (1 + (0.3 * foretell))
-        scenario_parts = [f"{foretell} Foretell"]
+        multiplier = (base_multiplier or 0) * (1 + (0.3 * effective_foretell))
+        scenario_parts = [f"{effective_foretell} Twilight-effective Foretell" if twilight else f"{foretell} Foretell"]
         if full_life:
             multiplier *= 3.97
             scenario_parts.append("Full life")
         if twilight:
             multiplier *= 1.5
-            scenario_parts.append("Twilight")
+            scenario_parts.append(f"Twilight from {foretell} applied Foretell")
         return result(round(multiplier, 2), ", ".join(scenario_parts), "Derived from note text")
 
     if skill == "Sealed Fate":
         if foretell >= 1 and twilight and twilight_value is not None:
-            return result(twilight_value, "1-6 Foretell, Twilight", "TwilightDmg")
+            return result(twilight_value, f"{effective_foretell} Twilight-effective Foretell, Twilight", "TwilightDmg")
         if foretell >= 1 and conditional is not None:
-            return result(conditional, "1-6 Foretell", "ConDmg")
+            return result(conditional, f"{foretell} Foretell", "ConDmg")
         return base_result(row)
 
     if skill == "Firing Shadow":
-        multiplier = (base_multiplier or 0) * (1 + (min(foretell, 3) / 3))
-        scenario = f"{min(foretell, 3)} Foretell consumed"
+        consumed_foretell = min(effective_foretell, 3)
+        multiplier = (base_multiplier or 0) * (1 + (consumed_foretell / 3))
+        scenario = (
+            f"{consumed_foretell} Twilight-effective Foretell consumed from {foretell} applied Foretell"
+            if twilight
+            else f"{consumed_foretell} Foretell consumed"
+        )
         if twilight:
             multiplier *= 1.5
-            scenario = f"{scenario}, Twilight"
         return result(round(multiplier, 2), scenario, "Derived from note text")
 
     if twilight and twilight_value is not None:
-        return result(twilight_value, "Twilight", "TwilightDmg")
+        return result(twilight_value, f"Twilight from {foretell} applied Foretell", "TwilightDmg")
 
     return base_result(row)
 
@@ -1173,7 +1185,6 @@ calculator_controls = dbc.Accordion(
                             label="Foretell",
                             value=0,
                             min=0,
-                            max=30,
                             step=1,
                         ),
                         id="exp33-calculator-control-sciel-foretell",
