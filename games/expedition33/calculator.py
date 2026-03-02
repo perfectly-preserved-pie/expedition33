@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import re
+from typing import Any, TypeAlias, TypedDict
 
 from dash import Input, Output, callback, dcc, html, register_page
 import dash_bootstrap_components as dbc
@@ -9,6 +10,36 @@ import dash_mantine_components as dmc
 import pandas as pd
 
 from games.expedition33.helpers import clean_frame, format_value
+
+CalculatorRow: TypeAlias = dict[str, Any]
+CalculatorState: TypeAlias = dict[str, Any]
+ComponentChildren: TypeAlias = list[Any]
+SkillOption: TypeAlias = dict[str, str]
+StyleRule: TypeAlias = dict[str, str]
+CharacterStyles: TypeAlias = dict[str, StyleRule]
+NumericInput: TypeAlias = int | float | None
+ToggleInput: TypeAlias = bool | None
+
+
+class CalculationResult(TypedDict):
+    """Normalized payload describing the selected damage scenario."""
+    multiplier: float | None
+    scenario: str
+    source: str
+    warning: str | None
+
+
+class SheetScenario(TypedDict):
+    """A spreadsheet breakpoint displayed in the summary table."""
+    label: str
+    value: float
+
+
+class CalculatorPayload(TypedDict):
+    """Loaded calculator data for a single character."""
+    default_attack: float
+    records: list[CalculatorRow]
+    skills: dict[str, CalculatorRow]
 
 CSV_DIR = Path(__file__).resolve().parents[2] / "assets" / "expedition33" / "clair_skill_damage"
 
@@ -33,18 +64,21 @@ DEFAULT_SKILLS = {
 RANK_ORDER = {"D": 0, "C": 1, "B": 2, "A": 3, "S": 4}
 
 
-def compact(children):
+def compact(children: ComponentChildren) -> ComponentChildren:
+    """Remove placeholder entries from a component list."""
     return [child for child in children if child is not None]
 
 
-def clean_text(value) -> str:
+def clean_text(value: Any) -> str:
+    """Convert raw CSV values into trimmed display-safe strings."""
     if value is None:
         return ""
     text = str(value).strip()
     return "" if text.lower() == "nan" else text
 
 
-def parse_number(value) -> float | None:
+def parse_number(value: Any) -> float | None:
+    """Parse a numeric cell value while tolerating sheet punctuation."""
     if value is None:
         return None
     if isinstance(value, (int, float)) and not pd.isna(value):
@@ -60,12 +94,14 @@ def parse_number(value) -> float | None:
         return None
 
 
-def extract_first_int(value) -> int | None:
+def extract_first_int(value: Any) -> int | None:
+    """Extract the first integer embedded in a condition string."""
     match = re.search(r"(\d+)", clean_text(value))
     return int(match.group(1)) if match else None
 
 
-def number_from_row(row: dict[str, object], *keys: str) -> float | None:
+def number_from_row(row: CalculatorRow, *keys: str) -> float | None:
+    """Return the first parseable numeric value from the provided columns."""
     for key in keys:
         number = parse_number(row.get(key))
         if number is not None:
@@ -73,7 +109,8 @@ def number_from_row(row: dict[str, object], *keys: str) -> float | None:
     return None
 
 
-def text_from_row(row: dict[str, object], *keys: str) -> str:
+def text_from_row(row: CalculatorRow, *keys: str) -> str:
+    """Return the first non-empty text value from the provided columns."""
     for key in keys:
         text = clean_text(row.get(key))
         if text:
@@ -81,7 +118,8 @@ def text_from_row(row: dict[str, object], *keys: str) -> str:
     return ""
 
 
-def clamp_int(value, minimum: int, maximum: int) -> int:
+def clamp_int(value: Any, minimum: int, maximum: int) -> int:
+    """Clamp user input to an integer range used by calculator controls."""
     try:
         number = int(value)
     except (TypeError, ValueError):
@@ -90,6 +128,7 @@ def clamp_int(value, minimum: int, maximum: int) -> int:
 
 
 def format_multiplier(value: float | None) -> str:
+    """Format a damage multiplier for result-card display."""
     if value is None:
         return "-"
     text = f"{value:,.2f}".rstrip("0").rstrip(".")
@@ -97,12 +136,18 @@ def format_multiplier(value: float | None) -> str:
 
 
 def calculate_damage(attack: float | None, multiplier: float | None) -> float | None:
+    """Convert attack and multiplier values into estimated damage."""
     if attack is None or multiplier is None:
         return None
     return round(attack * multiplier, 2)
 
 
-def base_result(row: dict[str, object], scenario: str | None = None, source: str = "Damage Multi") -> dict[str, object]:
+def base_result(
+    row: CalculatorRow,
+    scenario: str | None = None,
+    source: str = "Damage Multi",
+) -> CalculationResult:
+    """Build the default result payload for a skill row."""
     condition = text_from_row(row, "Condition 1", "Condition")
     return {
         "multiplier": number_from_row(row, "Damage Multi"),
@@ -112,7 +157,13 @@ def base_result(row: dict[str, object], scenario: str | None = None, source: str
     }
 
 
-def result(multiplier: float | None, scenario: str, source: str, warning: str | None = None) -> dict[str, object]:
+def result(
+    multiplier: float | None,
+    scenario: str,
+    source: str,
+    warning: str | None = None,
+) -> CalculationResult:
+    """Build a normalized result payload for a calculated scenario."""
     return {
         "multiplier": multiplier,
         "scenario": scenario,
@@ -121,15 +172,16 @@ def result(multiplier: float | None, scenario: str, source: str, warning: str | 
     }
 
 
-def load_calculator_data() -> dict[str, dict[str, object]]:
-    payloads: dict[str, dict[str, object]] = {}
+def load_calculator_data() -> dict[str, CalculatorPayload]:
+    """Load and normalize every character CSV into calculator-friendly payloads."""
+    payloads: dict[str, CalculatorPayload] = {}
 
     for character in CHARACTER_META:
         frame = clean_frame(pd.read_csv(CSV_DIR / f"{character}.csv"))
         frame = frame.dropna(subset=["Skill"]).copy()
         safe_frame = frame.astype(object).where(pd.notnull(frame), None)
 
-        records: list[dict[str, object]] = []
+        records: list[CalculatorRow] = []
         for record in safe_frame.to_dict("records"):
             skill = clean_text(record.get("Skill"))
             if not skill or skill.lower().startswith("skill tierlist"):
@@ -148,7 +200,7 @@ def load_calculator_data() -> dict[str, dict[str, object]]:
                 break
 
         payloads[character] = {
-            "default_attack": default_attack or 1000,
+            "default_attack": float(default_attack or 1000),
             "records": records,
             "skills": {record["Skill"]: record for record in records},
         }
@@ -156,18 +208,20 @@ def load_calculator_data() -> dict[str, dict[str, object]]:
     return payloads
 
 
-CALCULATOR_DATA = load_calculator_data()
+CALCULATOR_DATA: dict[str, CalculatorPayload] = load_calculator_data()
 
 
-def skill_options_for(character: str) -> list[dict[str, str]]:
+def skill_options_for(character: str) -> list[SkillOption]:
+    """Build the dropdown option list for a character's skills."""
     return [
         {"label": record["Skill"], "value": record["Skill"]}
         for record in CALCULATOR_DATA[character]["records"]
     ]
 
 
-def get_row(character: str, skill: str | None) -> dict[str, object]:
-    skills = CALCULATOR_DATA[character]["skills"]
+def get_row(character: str, skill: str | None) -> CalculatorRow:
+    """Return the selected skill row, falling back to the character default."""
+    skills: dict[str, CalculatorRow] = CALCULATOR_DATA[character]["skills"]
     if skill in skills:
         return skills[skill]
 
@@ -179,6 +233,7 @@ def get_row(character: str, skill: str | None) -> dict[str, object]:
 
 
 def parse_rank_requirement(value: str) -> str | None:
+    """Extract a Verso rank requirement from a condition label."""
     match = re.search(r"\b([DCBAS])\b", clean_text(value))
     if not match:
         return None
@@ -187,15 +242,18 @@ def parse_rank_requirement(value: str) -> str | None:
 
 
 def rank_at_least(current_rank: str, required_rank: str | None) -> bool:
+    """Check whether the current Verso rank satisfies a rank gate."""
     if required_rank is None:
         return False
     return RANK_ORDER.get(current_rank, -1) >= RANK_ORDER.get(required_rank, 99)
 
 
-def build_sheet_rows(row: dict[str, object]) -> list[dict[str, object]]:
-    entries: list[dict[str, object]] = []
-
+def build_sheet_rows(row: CalculatorRow) -> list[SheetScenario]:
+    """Collect the distinct sheet breakpoints shown in the summary card."""
+    entries: list[SheetScenario] = []
     def add_entry(label: str, value: float | None) -> None:
+        """Append a unique spreadsheet scenario to the summary list."""
+
         if value is None:
             return
         if any(existing["label"] == label and existing["value"] == value for existing in entries):
@@ -227,7 +285,8 @@ def build_sheet_rows(row: dict[str, object]) -> list[dict[str, object]]:
     return entries
 
 
-def calculate_current_cost(character: str, row: dict[str, object], state: dict[str, object]) -> str:
+def calculate_current_cost(character: str, row: CalculatorRow, state: CalculatorState) -> str:
+    """Return the displayed AP cost after character-specific modifiers."""
     raw_cost = clean_text(row.get("Cost"))
     numeric_cost = parse_number(row.get("Cost"))
     skill = clean_text(row.get("Skill"))
@@ -248,9 +307,9 @@ def calculate_current_cost(character: str, row: dict[str, object], state: dict[s
     return format_value(numeric_cost)
 
 
-def calculate_gustave(row: dict[str, object], state: dict[str, object]) -> dict[str, object]:
+def calculate_gustave(row: CalculatorRow, state: CalculatorState) -> CalculationResult:
+    """Calculate Gustave skill damage from charge-based state."""
     skill = clean_text(row.get("Skill"))
-
     if skill.startswith("Overcharge"):
         charges = clamp_int(state.get("charges"), 0, 10)
         overcharge_base = 2.1
@@ -262,7 +321,8 @@ def calculate_gustave(row: dict[str, object], state: dict[str, object]) -> dict[
     return base_result(row)
 
 
-def calculate_lune(row: dict[str, object], state: dict[str, object]) -> dict[str, object]:
+def calculate_lune(row: CalculatorRow, state: CalculatorState) -> CalculationResult:
+    """Calculate Lune skill damage from stain, turn, and crit state."""
     skill = clean_text(row.get("Skill"))
     base_multiplier = number_from_row(row, "Damage Multi")
     conditional = number_from_row(row, "Dmg Con1")
@@ -319,7 +379,8 @@ def calculate_lune(row: dict[str, object], state: dict[str, object]) -> dict[str
     return base_result(row)
 
 
-def calculate_maelle(row: dict[str, object], state: dict[str, object]) -> dict[str, object]:
+def calculate_maelle(row: CalculatorRow, state: CalculatorState) -> CalculationResult:
+    """Calculate Maelle skill damage from burn, marked, and hit-based state."""
     skill = clean_text(row.get("Skill"))
     base_multiplier = number_from_row(row, "Damage Multi")
     maximum = number_from_row(row, "DmMax")
@@ -353,7 +414,8 @@ def calculate_maelle(row: dict[str, object], state: dict[str, object]) -> dict[s
     return base_result(row)
 
 
-def calculate_monoco(row: dict[str, object], state: dict[str, object]) -> dict[str, object]:
+def calculate_monoco(row: CalculatorRow, state: CalculatorState) -> CalculationResult:
+    """Calculate Monoco skill damage from mask and target status state."""
     skill = clean_text(row.get("Skill"))
     base_multiplier = number_from_row(row, "Damage Multi")
     conditional = number_from_row(row, "Dmg Con1")
@@ -457,7 +519,8 @@ SCIEL_FORETELL_RATES = {
 }
 
 
-def calculate_sciel(row: dict[str, object], state: dict[str, object]) -> dict[str, object]:
+def calculate_sciel(row: CalculatorRow, state: CalculatorState) -> CalculationResult:
+    """Calculate Sciel skill damage from foretell, twilight, and life state."""
     skill = clean_text(row.get("Skill"))
     base_multiplier = number_from_row(row, "Damage Multi")
     conditional = number_from_row(row, "ConDmg")
@@ -509,7 +572,8 @@ def calculate_sciel(row: dict[str, object], state: dict[str, object]) -> dict[st
     return base_result(row)
 
 
-def calculate_verso(row: dict[str, object], state: dict[str, object]) -> dict[str, object]:
+def calculate_verso(row: CalculatorRow, state: CalculatorState) -> CalculationResult:
+    """Calculate Verso skill damage from rank and setup state."""
     skill = clean_text(row.get("Skill"))
     base_multiplier = number_from_row(row, "Damage Multi")
     conditional = number_from_row(row, "ConDmg")
@@ -569,7 +633,12 @@ def calculate_verso(row: dict[str, object], state: dict[str, object]) -> dict[st
     return base_result(row)
 
 
-def calculate_skill_result(character: str, row: dict[str, object], state: dict[str, object]) -> dict[str, object]:
+def calculate_skill_result(
+    character: str,
+    row: CalculatorRow,
+    state: CalculatorState,
+) -> CalculationResult:
+    """Dispatch skill calculation to the character-specific calculator."""
     calculators = {
         "gustave": calculate_gustave,
         "lune": calculate_lune,
@@ -581,7 +650,8 @@ def calculate_skill_result(character: str, row: dict[str, object], state: dict[s
     return calculators[character](row, state)
 
 
-def build_badges(character: str, row: dict[str, object], current_cost: str) -> list:
+def build_badges(character: str, row: CalculatorRow, current_cost: str) -> ComponentChildren:
+    """Build metadata badges shown above the result cards."""
     difficulty = clean_text(row.get("Game Description")).title()
     difficulty_color = {
         "Low": "green",
@@ -613,11 +683,12 @@ def build_badges(character: str, row: dict[str, object], current_cost: str) -> l
 
 def build_result_body(
     character: str,
-    row: dict[str, object],
+    row: CalculatorRow,
     attack: float | None,
     current_cost: str,
-    skill_result: dict[str, object],
-) -> list:
+    skill_result: CalculationResult,
+) -> ComponentChildren:
+    """Build the result card body for the selected skill state."""
     multiplier = skill_result.get("multiplier")
     damage = calculate_damage(attack, multiplier if isinstance(multiplier, (int, float)) else None)
     notes = clean_text(row.get("Notes"))
@@ -693,7 +764,8 @@ def build_result_body(
     )
 
 
-def build_summary_body(row: dict[str, object], attack: float | None) -> list:
+def build_summary_body(row: CalculatorRow, attack: float | None) -> ComponentChildren:
+    """Build the spreadsheet breakpoint summary table."""
     rows = build_sheet_rows(row)
     header_attack = format_value(attack) if attack is not None else "-"
 
@@ -730,10 +802,11 @@ def build_summary_body(row: dict[str, object], attack: float | None) -> list:
     ]
 
 
-def build_character_section_styles(active_character: str) -> tuple[list[str], dict[str, dict[str, str]]]:
+def build_character_section_styles(active_character: str) -> tuple[list[str], CharacterStyles]:
+    """Return accordion visibility styles for the active character."""
     active_item = [f"setup-{active_character}"]
-    hidden = {"display": "none"}
-    visible = {}
+    hidden: StyleRule = {"display": "none"}
+    visible: StyleRule = {}
 
     styles = {
         character: visible if character == active_character else hidden
@@ -1010,14 +1083,14 @@ layout = dbc.Container(
     fluid=True,
 )
 
-
 @callback(
     Output("exp33-calculator-skill", "options"),
     Output("exp33-calculator-skill", "value"),
     Output("exp33-calculator-attack", "value"),
     Input("exp33-calculator-character", "value"),
 )
-def update_skill_dropdown(character: str):
+def update_skill_dropdown(character: str | None) -> tuple[list[SkillOption], str, float]:
+    """Refresh the skill dropdown and default attack when the character changes."""
     selected_character = character or DEFAULT_CHARACTER
     options = skill_options_for(selected_character)
     default_skill = DEFAULT_SKILLS.get(selected_character, options[0]["value"])
@@ -1037,7 +1110,10 @@ def update_skill_dropdown(character: str):
     Output("exp33-calculator-item-verso", "style"),
     Input("exp33-calculator-character", "value"),
 )
-def sync_visible_controls(character: str):
+def sync_visible_controls(
+    character: str | None,
+) -> tuple[list[str], StyleRule, StyleRule, StyleRule, StyleRule, StyleRule, StyleRule]:
+    """Show only the control section relevant to the selected character."""
     active_character = character or DEFAULT_CHARACTER
     active_item, styles = build_character_section_styles(active_character)
     return (
@@ -1085,41 +1161,43 @@ def sync_visible_controls(character: str):
     Input("exp33-calculator-verso-speed-bonus", "checked"),
 )
 def update_calculator_result(
-    character,
-    skill,
-    attack,
-    gustave_charges,
-    lune_stains,
-    lune_turns,
-    lune_all_crits,
-    maelle_stance,
-    maelle_burn_stacks,
-    maelle_hits_taken,
-    maelle_marked,
-    maelle_all_crits,
-    monoco_turns,
-    monoco_mask,
-    monoco_stunned,
-    monoco_marked,
-    monoco_powerless,
-    monoco_burning,
-    monoco_low_life,
-    monoco_full_life,
-    monoco_all_crits,
-    sciel_foretell,
-    sciel_twilight,
-    sciel_full_life,
-    verso_rank,
-    verso_shots,
-    verso_uses,
-    verso_stunned,
-    verso_speed_bonus,
-):
+    character: str | None,
+    skill: str | None,
+    attack: NumericInput,
+    gustave_charges: NumericInput,
+    lune_stains: NumericInput,
+    lune_turns: NumericInput,
+    lune_all_crits: ToggleInput,
+    maelle_stance: str | None,
+    maelle_burn_stacks: NumericInput,
+    maelle_hits_taken: NumericInput,
+    maelle_marked: ToggleInput,
+    maelle_all_crits: ToggleInput,
+    monoco_turns: NumericInput,
+    monoco_mask: ToggleInput,
+    monoco_stunned: ToggleInput,
+    monoco_marked: ToggleInput,
+    monoco_powerless: ToggleInput,
+    monoco_burning: ToggleInput,
+    monoco_low_life: ToggleInput,
+    monoco_full_life: ToggleInput,
+    monoco_all_crits: ToggleInput,
+    sciel_foretell: NumericInput,
+    sciel_twilight: ToggleInput,
+    sciel_full_life: ToggleInput,
+    verso_rank: str | None,
+    verso_shots: NumericInput,
+    verso_uses: NumericInput,
+    verso_stunned: ToggleInput,
+    verso_speed_bonus: ToggleInput,
+) -> tuple[ComponentChildren, ComponentChildren]:
+    """Recalculate the selected skill and rebuild both result panels."""
+
     selected_character = character or DEFAULT_CHARACTER
     row = get_row(selected_character, skill)
     attack_value = parse_number(attack) or CALCULATOR_DATA[selected_character]["default_attack"]
 
-    states = {
+    states: dict[str, CalculatorState] = {
         "gustave": {
             "charges": gustave_charges,
         },
