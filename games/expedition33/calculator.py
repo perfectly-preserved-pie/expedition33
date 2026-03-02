@@ -455,6 +455,12 @@ def calculate_monoco(row: CalculatorRow, state: CalculatorState) -> CalculationR
     full_life = bool(state.get("full_life"))
     all_crits = bool(state.get("all_crits"))
 
+    def with_generic_mask(skill_result: CalculationResult) -> CalculationResult:
+        """Apply the generic Monoco mask bonus when appropriate."""
+        if not mask_active:
+            return skill_result
+        return apply_monoco_mask_bonus(row, skill_result)
+
     if skill.startswith("Burn "):
         return result(round((base_multiplier or 0) * turns, 2), f"{turns} Burn tick(s)", "Derived from burn rows")
 
@@ -527,10 +533,10 @@ def calculate_monoco(row: CalculatorRow, state: CalculatorState) -> CalculationR
         if mask_active and conditional is not None:
             return result(conditional, "Mask active", "Dmg Con1")
 
-    if mask_active and conditional is not None:
+    if mask_active and has_explicit_monoco_mask_breakpoint(row) and conditional is not None:
         return result(conditional, "Mask active", "Dmg Con1")
 
-    return base_result(row)
+    return with_generic_mask(base_result(row))
 
 
 SCIEL_FORETELL_RATES = {
@@ -864,7 +870,6 @@ def build_summary_body(row: CalculatorRow, attack: float | None) -> ComponentChi
         )
     ]
 
-
 def build_character_section_styles(active_character: str) -> tuple[list[str], CharacterStyles]:
     """Return accordion visibility styles for the active character."""
 
@@ -887,10 +892,42 @@ def uses_mask_condition(row: CalculatorRow) -> bool:
     )
     return any("mask" in text.lower() for text in texts if text)
 
+def monoco_mask_type(row: CalculatorRow) -> str:
+    """Return Monoco's mask type for rows that can receive generic mask bonuses."""
+    return clean_text(row.get("Mask")).strip()
+
+def has_explicit_monoco_mask_breakpoint(row: CalculatorRow) -> bool:
+    """Return whether the sheet already provides a masked damage breakpoint."""
+    texts = (
+        text_from_row(row, "Condition 1"),
+        text_from_row(row, "Con Max Dmg"),
+    )
+    return any("mask" in text.lower() for text in texts if text)
+
+def can_apply_generic_monoco_mask_bonus(row: CalculatorRow) -> bool:
+    """Return whether a Monoco row should use the fallback generic mask bonus."""
+    mask_type = monoco_mask_type(row).upper()
+    return bool(mask_type and mask_type != "GRADIENT" and not has_explicit_monoco_mask_breakpoint(row))
+
+def apply_monoco_mask_bonus(row: CalculatorRow, skill_result: CalculationResult) -> CalculationResult:
+    """Apply Monoco's generic mask bonus when the sheet lacks an explicit masked value."""
+    multiplier = skill_result.get("multiplier")
+    if multiplier is None or not can_apply_generic_monoco_mask_bonus(row):
+        return skill_result
+
+    mask_type = monoco_mask_type(row).upper()
+    bonus_multiplier = 5.0 if mask_type == "ALMIGHTY" else 3.0
+    label = "Almighty mask" if mask_type == "ALMIGHTY" else f"{monoco_mask_type(row)} mask"
+
+    return result(
+        round(multiplier * bonus_multiplier, 2),
+        f"{skill_result['scenario']} | {label} bonus",
+        f"{skill_result['source']} + generic mask bonus",
+        skill_result.get("warning"),
+    )
 
 def build_skill_control_styles(character: str, row: CalculatorRow) -> ControlStyles:
     """Return per-control visibility styles for the selected character skill."""
-
     skill = clean_text(row.get("Skill"))
     condition = text_from_row(row, "Condition 1", "Condition").lower()
     max_condition = text_from_row(row, "Con Max Dmg", "ConTwilight").lower()
@@ -932,7 +969,7 @@ def build_skill_control_styles(character: str, row: CalculatorRow) -> ControlSty
             "monoco_turns",
             skill.startswith("Burn ") or skill in {"Sakapate Fire", "Abberation Light", "Braseleur Smash"},
         )
-        set_visibility("monoco_mask", uses_mask_condition(row))
+        set_visibility("monoco_mask", uses_mask_condition(row) or can_apply_generic_monoco_mask_bonus(row))
         set_visibility("monoco_stunned", skill in {"Mighty Strike", "Sakapate Estoc"})
         set_visibility("monoco_marked", skill == "Sakapate Slam")
         set_visibility("monoco_powerless", skill == "Obscur Sword")
