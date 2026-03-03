@@ -764,7 +764,7 @@ layout = dbc.Container(
         dbc.Alert(
             html.Span(
                 [
-                    "Spreadsheet damage values are used as breakpoints. When the note text clearly exposes the formula, the calculator derives intermediate values from it.",
+                    "Spreadsheet damage values are used as reference points. When the notes clearly state the formula, the calculator fills in the values between them.",
                 ]
             ),
             color="info",
