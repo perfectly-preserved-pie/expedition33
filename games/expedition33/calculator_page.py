@@ -1,0 +1,11 @@
+from __future__ import annotations
+from dash import register_page
+from games.expedition33.calculator.layout import layout
+
+register_page(
+    __name__,
+    path="/calculator",
+    name="Skill Damage Calculator",
+    title="Expedition 33 Skill Damage Calculator",
+    layout=layout,
+)
