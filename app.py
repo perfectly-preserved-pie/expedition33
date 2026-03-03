@@ -179,6 +179,8 @@ def navigate_from_tree(selected: list[str] | None) -> str:
 
     return value
 
+# For Gunicorn
+server = app.server
 
 if __name__ == "__main__":
     app.run(debug=True)
