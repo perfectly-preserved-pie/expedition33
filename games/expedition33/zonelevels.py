@@ -54,4 +54,4 @@ layout = html.Div(
 )
 
 from dash import register_page
-register_page(__name__, path="/expedition33/zonelevels", name="Zone Levels", layout=layout)
+register_page(__name__, path="/exp33/zonelevels", name="Zone Levels", layout=layout)

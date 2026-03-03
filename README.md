@@ -83,5 +83,5 @@ Once registered, the home tree in `app.py` will automatically group the page und
 ## Notes
 
 - The top-level app is intentionally generic so multiple games can live in one project.
-- Game URLs are namespaced by game, for example `/expedition33/skilldamage`.
+- Game URLs are namespaced by game, for example `/exp33/skilldamage`.
 - Game-specific documentation lives in [Expedition 33 calculator README](games/expedition33/calculator/README.md) and [Xenosaga README](games/xenosaga/readme.md).

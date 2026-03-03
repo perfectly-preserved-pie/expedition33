@@ -203,7 +203,7 @@ def open_and_populate_modal(
 
 register_page(
     __name__,
-    path="/expedition33/skilldamage",
+    path="/exp33/skilldamage",
     name="Skill Damage",
     title="Skill Damage",
     layout=layout,
