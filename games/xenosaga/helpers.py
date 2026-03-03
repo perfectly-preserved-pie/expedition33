@@ -10,7 +10,17 @@ from pandas.api.types import is_numeric_dtype
 
 
 def load_episode_rows(connection: sqlite3.Connection, table_name: str) -> pd.DataFrame:
-    """Load, normalize, and sort enemy rows for a single episode table."""
+    """Load and normalize rows for a single episode table.
+
+    Args:
+        connection: An open SQLite connection to the bundled enemy database.
+        table_name: The table name for the selected Xenosaga episode.
+
+    Returns:
+        A DataFrame sorted by enemy name, with helper columns such as ``uuid``
+        removed when present.
+    """
+
     frame = pd.read_sql_query(f'SELECT * FROM "{table_name}"', connection)
     if "uuid" in frame.columns:
         frame = frame.drop(columns=["uuid"])
@@ -19,9 +29,28 @@ def load_episode_rows(connection: sqlite3.Connection, table_name: str) -> pd.Dat
 
 
 def build_column_defs(frame: pd.DataFrame) -> list[dict[str, Any]]:
-    """Build ag-grid column definitions with numeric-aware filtering/formatting."""
+    """Build ag-grid column definitions with numeric-aware behavior.
+
+    Args:
+        frame: The DataFrame used to infer column names and numeric handling.
+
+    Returns:
+        A list of ag-grid column definitions with numeric columns configured for
+        sorting and formatting.
+    """
+
     # Determine if a column is numeric using dtype first, then sampled values
     def is_numeric_col(column_name: str) -> bool:
+        """Estimate whether a mixed-content column should behave numerically.
+
+        Args:
+            column_name: The DataFrame column name to inspect.
+
+        Returns:
+            ``True`` when the column values should use numeric filtering and
+            formatting in ag-grid, otherwise ``False``.
+        """
+
         if is_numeric_dtype(frame[column_name].dtype):
             return True
 
@@ -56,7 +85,16 @@ def build_column_defs(frame: pd.DataFrame) -> list[dict[str, Any]]:
 
 
 def format_value(value: Any) -> str:
-    """Format values for display, returning comma-separated numbers or N/A."""
+    """Format a cell value for modal or grid display.
+
+    Args:
+        value: The raw value retrieved from a table row.
+
+    Returns:
+        A user-facing string with empty values converted to ``N/A`` and numeric
+        values formatted with thousands separators.
+    """
+
     if value is None:
         return "N/A"
     if isinstance(value, str) and value == "":
@@ -73,7 +111,15 @@ def format_value(value: Any) -> str:
 
 
 def apply_element_style(text: str) -> list[Any]:
-    """Apply color styling to known elemental/status tokens in comma-separated text."""
+    """Apply lightweight color styling to known comma-separated tokens.
+
+    Args:
+        text: A comma-separated string of element or status names.
+
+    Returns:
+        A list of Dash text fragments with known tokens wrapped in styled spans.
+    """
+
     color_styles: dict[str, str] = {
         "Lightning": "yellow",
         "Fire": "red",

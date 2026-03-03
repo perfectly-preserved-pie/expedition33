@@ -248,6 +248,15 @@ CONTROL_REASONS: dict[PictoControl, str] = {
 
 
 def _coerce_int(value: Any) -> int:
+    """Convert a raw control value into a non-negative integer.
+
+    Args:
+        value: The raw Dash control value to normalize.
+
+    Returns:
+        A non-negative integer, defaulting to ``0`` when parsing fails.
+    """
+
     try:
         return max(int(value), 0)
     except (TypeError, ValueError):
@@ -255,12 +264,32 @@ def _coerce_int(value: Any) -> int:
 
 
 def _format_percent(factor: float) -> str:
+    """Format a multiplicative factor as a signed percent delta.
+
+    Args:
+        factor: The multiplicative damage factor.
+
+    Returns:
+        A signed percentage string such as ``"+25%"`` or ``"-20%"``.
+    """
+
     delta = round((factor - 1) * 100)
     sign = "+" if delta >= 0 else ""
     return f"{sign}{delta}%"
 
 
 def _status_detail(name: str, factor: float, extra: str | None = None) -> str:
+    """Build the short status label shown in the Picto summary.
+
+    Args:
+        name: The Picto name.
+        factor: The multiplicative factor contributed by the Picto.
+        extra: Optional extra context such as stack counts or attack type.
+
+    Returns:
+        A compact summary string for the Picto's applied effect.
+    """
+
     detail = _format_percent(factor)
     if extra:
         detail = f"{detail} | {extra}"
@@ -268,6 +297,16 @@ def _status_detail(name: str, factor: float, extra: str | None = None) -> str:
 
 
 def required_picto_controls(selected_pictos: list[str] | None) -> set[PictoControl]:
+    """Determine which Picto setup controls are needed.
+
+    Args:
+        selected_pictos: The Picto names selected in the UI.
+
+    Returns:
+        The set of logical control ids required to evaluate the selected
+        Pictos.
+    """
+
     controls: set[PictoControl] = set()
     for name in selected_pictos or []:
         definition = PICTO_DEFINITIONS.get(name)
@@ -282,6 +321,17 @@ def required_picto_controls(selected_pictos: list[str] | None) -> set[PictoContr
 
 
 def evaluate_pictos(selected_pictos: list[str] | None, state: dict[str, Any]) -> PictoSummary:
+    """Evaluate the currently selected Pictos against UI state.
+
+    Args:
+        selected_pictos: The Picto names selected in the UI.
+        state: The normalized Picto state collected from the callback inputs.
+
+    Returns:
+        A summary containing the combined multiplier plus the active and
+        inactive Picto status entries.
+    """
+
     active: list[PictoStatus] = []
     inactive: list[PictoStatus] = []
     total_factor = 1.0

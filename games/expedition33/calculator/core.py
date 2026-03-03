@@ -66,13 +66,29 @@ HIDDEN_STYLE: StyleRule = {"display": "none"}
 
 
 def compact(children: ComponentChildren) -> ComponentChildren:
-    """Remove placeholder entries from a component list."""
+    """Remove placeholder values from a component child list.
+
+    Args:
+        children: The raw list of Dash component children, which may contain
+            ``None`` placeholders.
+
+    Returns:
+        A new child list containing only non-``None`` entries.
+    """
 
     return [child for child in children if child is not None]
 
 
 def clean_text(value: Any) -> str:
-    """Convert raw CSV values into trimmed display-safe strings."""
+    """Normalize a raw sheet value into a trimmed string.
+
+    Args:
+        value: The raw value read from a CSV row or callback state.
+
+    Returns:
+        A stripped string with ``None`` and ``nan``-like values collapsed to an
+        empty string.
+    """
 
     if value is None:
         return ""
@@ -81,7 +97,14 @@ def clean_text(value: Any) -> str:
 
 
 def parse_number(value: Any) -> float | None:
-    """Parse a numeric cell value while tolerating sheet punctuation."""
+    """Parse a numeric value from sheet data or callback input.
+
+    Args:
+        value: The raw value to parse.
+
+    Returns:
+        The parsed float when the value is numeric, otherwise ``None``.
+    """
 
     if value is None:
         return None
@@ -99,14 +122,31 @@ def parse_number(value: Any) -> float | None:
 
 
 def extract_first_int(value: Any) -> int | None:
-    """Extract the first integer embedded in a condition string."""
+    """Extract the first integer embedded in a string value.
+
+    Args:
+        value: The raw text or sheet value to inspect.
+
+    Returns:
+        The first integer found in the value, or ``None`` when no integer is
+        present.
+    """
 
     match = re.search(r"(\d+)", clean_text(value))
     return int(match.group(1)) if match else None
 
 
 def number_from_row(row: CalculatorRow, *keys: str) -> float | None:
-    """Return the first parseable numeric value from the provided columns."""
+    """Read the first parseable numeric value from a calculator row.
+
+    Args:
+        row: The selected calculator row.
+        *keys: Candidate column names to inspect in order.
+
+    Returns:
+        The first successfully parsed numeric value, or ``None`` if none of the
+        requested columns contain one.
+    """
 
     for key in keys:
         number = parse_number(row.get(key))
@@ -116,7 +156,16 @@ def number_from_row(row: CalculatorRow, *keys: str) -> float | None:
 
 
 def text_from_row(row: CalculatorRow, *keys: str) -> str:
-    """Return the first non-empty text value from the provided columns."""
+    """Read the first non-empty text value from a calculator row.
+
+    Args:
+        row: The selected calculator row.
+        *keys: Candidate column names to inspect in order.
+
+    Returns:
+        The first non-empty normalized string, or an empty string when all
+        requested columns are blank.
+    """
 
     for key in keys:
         text = clean_text(row.get(key))
@@ -126,7 +175,17 @@ def text_from_row(row: CalculatorRow, *keys: str) -> str:
 
 
 def clamp_int(value: Any, minimum: int, maximum: int) -> int:
-    """Clamp user input to an integer range used by calculator controls."""
+    """Clamp user input to an allowed integer range.
+
+    Args:
+        value: The raw control value supplied by Dash.
+        minimum: The smallest allowed integer.
+        maximum: The largest allowed integer.
+
+    Returns:
+        An integer constrained to the inclusive ``minimum`` and ``maximum``
+        bounds. Invalid inputs fall back to ``minimum``.
+    """
 
     try:
         number = int(value)
@@ -136,7 +195,15 @@ def clamp_int(value: Any, minimum: int, maximum: int) -> int:
 
 
 def format_multiplier(value: float | None) -> str:
-    """Format a damage multiplier for result-card display."""
+    """Format a multiplier for display in the calculator UI.
+
+    Args:
+        value: The computed damage multiplier.
+
+    Returns:
+        A human-readable multiplier string such as ``"3.5x"`` or ``"-"`` when
+        the multiplier is unavailable.
+    """
 
     if value is None:
         return "-"
@@ -145,7 +212,15 @@ def format_multiplier(value: float | None) -> str:
 
 
 def calculate_damage(attack: float | None, multiplier: float | None) -> float | None:
-    """Convert attack and multiplier values into estimated damage."""
+    """Convert attack and multiplier inputs into estimated damage.
+
+    Args:
+        attack: The effective attack power used by the calculator.
+        multiplier: The effective damage multiplier for the selected scenario.
+
+    Returns:
+        The rounded estimated damage, or ``None`` when either input is missing.
+    """
 
     if attack is None or multiplier is None:
         return None
@@ -158,7 +233,17 @@ def result(
     source: str,
     warning: str | None = None,
 ) -> CalculationResult:
-    """Build a normalized result payload for a calculated scenario."""
+    """Build a normalized calculation result payload.
+
+    Args:
+        multiplier: The effective damage multiplier for the selected scenario.
+        scenario: A short description of the scenario that produced the result.
+        source: The sheet column or derived rule used for the multiplier.
+        warning: Optional warning text shown alongside the result.
+
+    Returns:
+        A standardized result dictionary consumed by the calculator UI.
+    """
 
     return {
         "multiplier": multiplier,
@@ -173,7 +258,17 @@ def base_result(
     scenario: str | None = None,
     source: str = "Damage Multi",
 ) -> CalculationResult:
-    """Build the default result payload for a skill row."""
+    """Build the default result for a calculator row.
+
+    Args:
+        row: The selected calculator row.
+        scenario: An optional scenario label override.
+        source: The source label for the multiplier value.
+
+    Returns:
+        A normalized result payload based on the row's base multiplier and sheet
+        condition text.
+    """
 
     condition = text_from_row(row, "Condition 1", "Condition")
     return result(
@@ -184,7 +279,12 @@ def base_result(
 
 
 def load_calculator_data() -> dict[str, CalculatorPayload]:
-    """Load and normalize every character CSV into calculator-friendly payloads."""
+    """Load and normalize all calculator CSV data.
+
+    Returns:
+        A mapping of character ids to their default attack values, raw records,
+        and skill lookup dictionaries.
+    """
 
     payloads: dict[str, CalculatorPayload] = {}
 
@@ -224,7 +324,15 @@ CALCULATOR_DATA: dict[str, CalculatorPayload] = load_calculator_data()
 
 
 def skill_options_for(character: str) -> list[SkillOption]:
-    """Build the dropdown option list for a character's skills, sorted alphabetically."""
+    """Build dropdown options for a character's skills.
+
+    Args:
+        character: The calculator character id.
+
+    Returns:
+        A case-insensitively sorted list of dropdown option dictionaries for the
+        character's skills.
+    """
 
     return sorted(
         [{"label": record["Skill"], "value": record["Skill"]} for record in CALCULATOR_DATA[character]["records"]],
@@ -233,7 +341,16 @@ def skill_options_for(character: str) -> list[SkillOption]:
 
 
 def get_row(character: str, skill: str | None) -> CalculatorRow:
-    """Return the selected skill row, falling back to the character default."""
+    """Resolve the selected skill row for a character.
+
+    Args:
+        character: The calculator character id.
+        skill: The requested skill name, if one is selected.
+
+    Returns:
+        The matching skill row, or the character's configured fallback/default
+        row when the requested skill is unavailable.
+    """
 
     skills: dict[str, CalculatorRow] = CALCULATOR_DATA[character]["skills"]
     if skill in skills:
@@ -247,7 +364,14 @@ def get_row(character: str, skill: str | None) -> CalculatorRow:
 
 
 def parse_rank_requirement(value: str) -> str | None:
-    """Extract a Verso rank requirement from a condition label."""
+    """Extract a Verso rank requirement from text.
+
+    Args:
+        value: The sheet condition text to inspect.
+
+    Returns:
+        A rank letter when one is present and recognized, otherwise ``None``.
+    """
 
     match = re.search(r"\b([DCBAS])\b", clean_text(value))
     if not match:
@@ -257,7 +381,16 @@ def parse_rank_requirement(value: str) -> str | None:
 
 
 def rank_at_least(current_rank: str, required_rank: str | None) -> bool:
-    """Check whether the current Verso rank satisfies a rank gate."""
+    """Check whether a Verso rank meets a minimum requirement.
+
+    Args:
+        current_rank: The currently selected Verso rank.
+        required_rank: The minimum rank required by the skill.
+
+    Returns:
+        ``True`` when the current rank is at least the required rank, otherwise
+        ``False``.
+    """
 
     if required_rank is None:
         return False
@@ -265,11 +398,28 @@ def rank_at_least(current_rank: str, required_rank: str | None) -> bool:
 
 
 def build_sheet_rows(row: CalculatorRow) -> list[SheetScenario]:
-    """Collect the distinct sheet breakpoints shown in the summary card."""
+    """Collect distinct multiplier breakpoints from a sheet row.
+
+    Args:
+        row: The selected calculator row.
+
+    Returns:
+        A de-duplicated list of sheet scenarios used by the summary table.
+    """
 
     entries: list[SheetScenario] = []
 
     def add_entry(label: str, value: float | None) -> None:
+        """Append a unique summary entry when the value is usable.
+
+        Args:
+            label: The scenario label to show in the summary table.
+            value: The multiplier to store for that scenario.
+
+        Returns:
+            ``None``. The function mutates ``entries`` in place.
+        """
+
         if value is None:
             return
         if any(existing["label"] == label and existing["value"] == value for existing in entries):
@@ -302,7 +452,16 @@ def build_sheet_rows(row: CalculatorRow) -> list[SheetScenario]:
 
 
 def calculate_current_cost(character: str, row: CalculatorRow, state: CalculatorState) -> str:
-    """Return the displayed AP cost after character-specific modifiers."""
+    """Calculate the AP cost shown for the selected state.
+
+    Args:
+        character: The calculator character id.
+        row: The selected calculator row.
+        state: The normalized state dictionary for the active character.
+
+    Returns:
+        The AP cost string after applying any character-specific reductions.
+    """
 
     raw_cost = clean_text(row.get("Cost"))
     numeric_cost = parse_number(row.get("Cost"))

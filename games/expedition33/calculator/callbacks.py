@@ -4,6 +4,7 @@ from typing import Any
 from games.expedition33.calculator.core import (
     calculate_current_cost,
     CALCULATOR_DATA,
+    CalculatorState,
     CharacterStyles,
     ComponentChildren,
     ControlStyles,
@@ -28,8 +29,17 @@ from games.expedition33.calculator.logic import (
 )
 from games.expedition33.calculator.pictos import evaluate_pictos, required_picto_controls
 
+
 def build_character_section_styles(active_character: str) -> tuple[list[str], CharacterStyles]:
-    """Return accordion visibility styles for the active character."""
+    """Build accordion state for the active character section.
+
+    Args:
+        active_character: The character id currently selected in the UI.
+
+    Returns:
+        A tuple containing the accordion item to open and the per-character
+        visibility styles for each setup section.
+    """
 
     active_item = [f"setup-{active_character}"]
     styles = {
@@ -40,13 +50,30 @@ def build_character_section_styles(active_character: str) -> tuple[list[str], Ch
 
 
 def control_style(control_styles: ControlStyles, control: str) -> StyleRule:
-    """Return the style for a single control wrapper."""
+    """Read the visibility style for a single control.
+
+    Args:
+        control_styles: The full control-style mapping for the selected skill.
+        control: The logical control name to look up.
+
+    Returns:
+        The control's style rule, defaulting to the shared hidden style.
+    """
 
     return control_styles.get(control, HIDDEN_STYLE)
 
 
 def empty_state_style(control_styles: ControlStyles, prefix: str) -> StyleRule:
-    """Show the placeholder when no controls are visible for the section."""
+    """Decide whether a character section should show its empty-state notice.
+
+    Args:
+        control_styles: The full control-style mapping for the selected skill.
+        prefix: The control-name prefix belonging to a single character section.
+
+    Returns:
+        The visible style when no controls in the section are shown, otherwise
+        the hidden style.
+    """
 
     has_visible_control = any(
         key.startswith(prefix) and value == VISIBLE_STYLE
@@ -82,8 +109,41 @@ def build_calculator_states(
     verso_uses: NumericInput,
     verso_stunned: ToggleInput,
     verso_speed_bonus: ToggleInput,
-) -> dict[str, dict[str, Any]]:
-    """Normalize callback inputs into per-character calculator state."""
+) -> dict[str, CalculatorState]:
+    """Normalize raw callback inputs into per-character calculator state.
+
+    Args:
+        gustave_charges: Gustave's Overcharge count.
+        lune_stains: Lune's active stain count.
+        lune_turns: The number of turns elapsed for turn-based Lune skills.
+        lune_all_crits: Whether all relevant Lune hits crit.
+        maelle_stance: Maelle's current stance.
+        maelle_burn_stacks: Burn stacks consumed or referenced by Maelle skills.
+        maelle_hits_taken: Hits Maelle took in the previous round.
+        maelle_marked: Whether the target is marked for Maelle.
+        maelle_all_crits: Whether all relevant Maelle hits crit.
+        monoco_turns: Burn turns elapsed for Monoco skills.
+        monoco_mask: Whether Monoco's mask bonus is active.
+        monoco_stunned: Whether the target is stunned for Monoco.
+        monoco_marked: Whether the target is marked for Monoco.
+        monoco_powerless: Whether the target is powerless.
+        monoco_burning: Whether the target is burning.
+        monoco_low_life: Whether the target is at low life.
+        monoco_full_life: Whether the target is at full life.
+        monoco_all_crits: Whether all relevant Monoco hits crit.
+        sciel_foretell: Sciel's applied foretell count.
+        sciel_twilight: Whether Twilight is active for Sciel.
+        sciel_full_life: Whether Sciel is at full life.
+        verso_rank: Verso's current rank.
+        verso_shots: The number of stored shots for Follow Up.
+        verso_uses: The use count for repeat-use Verso skills.
+        verso_stunned: Whether Verso's target is stunned.
+        verso_speed_bonus: Whether Verso has the full speed bonus active.
+
+    Returns:
+        A mapping of character ids to the normalized state dictionary expected
+        by the calculator logic.
+    """
 
     return {
         "gustave": {
@@ -147,7 +207,30 @@ def build_picto_state(
     picto_warming_up_stacks: NumericInput,
     picto_first_hit: ToggleInput,
 ) -> dict[str, Any]:
-    """Normalize callback inputs into a Picto evaluation state."""
+    """Normalize raw callback inputs into Picto evaluation state.
+
+    Args:
+        resolved_attack_type: The attack type used for attack-specific Pictos.
+        picto_below_10_health: Whether the user is below 10% health.
+        picto_target_burning: Whether the target is burning.
+        picto_target_stunned: Whether the target is stunned.
+        picto_exhausted: Whether the user is exhausted.
+        picto_full_health: Whether the user is at full health.
+        picto_unhit: Whether the user has not been hit yet.
+        picto_inverted: Whether the user is inverted.
+        picto_consume_ap: Whether the attack consumes AP on hit.
+        picto_shield_points: The current shield-point count.
+        picto_fighting_alone: Whether the active character is alone.
+        picto_all_allies_alive: Whether all allies are alive.
+        picto_status_effects: The number of status effects on self.
+        picto_dodge_stacks: The current Empowering Dodge stack count.
+        picto_parry_stacks: The current Empowering Parry stack count.
+        picto_warming_up_stacks: The current Warming Up stack count.
+        picto_first_hit: Whether the current hit is the first hit of battle.
+
+    Returns:
+        A normalized Picto state dictionary consumed by ``evaluate_pictos``.
+    """
 
     return {
         "attack_type": resolved_attack_type,
@@ -177,7 +260,15 @@ def build_picto_state(
     Input("exp33-calculator-character", "value"),
 )
 def update_skill_dropdown(character: str | None) -> tuple[list[SkillOption], str, float]:
-    """Refresh the skill dropdown and default attack when the character changes."""
+    """Refresh the skill dropdown and default attack when the character changes.
+
+    Args:
+        character: The selected calculator character id.
+
+    Returns:
+        A tuple of ``(options, selected_skill, default_attack)`` for the newly
+        selected character.
+    """
 
     selected_character = character or DEFAULT_CHARACTER
     options = skill_options_for(selected_character)
@@ -232,7 +323,16 @@ def update_skill_dropdown(character: str | None) -> tuple[list[SkillOption], str
     Input("exp33-calculator-skill", "value"),
 )
 def sync_visible_controls(character: str | None, skill: str | None) -> tuple[Any, ...]:
-    """Show only the control section relevant to the selected character."""
+    """Show only the setup controls relevant to the selected skill.
+
+    Args:
+        character: The selected calculator character id.
+        skill: The currently selected skill name.
+
+    Returns:
+        A Dash callback tuple containing the active accordion item plus the
+        visibility styles for every character setup section and control wrapper.
+    """
 
     active_character = character or DEFAULT_CHARACTER
     active_item, styles = build_character_section_styles(active_character)
@@ -305,12 +405,30 @@ def sync_visible_controls(character: str | None, skill: str | None) -> tuple[Any
     Input("exp33-calculator-pictos", "value"),
 )
 def sync_visible_picto_controls(pictos: list[str] | None) -> tuple[Any, ...]:
-    """Show only the Picto setup controls required by the selected Pictos."""
+    """Show only the Picto setup controls required by the current selection.
+
+    Args:
+        pictos: The selected Picto names from the multi-select.
+
+    Returns:
+        A Dash callback tuple containing the collapse state and visibility
+        styles for each Picto setup control.
+    """
 
     required_controls = required_picto_controls(pictos)
     has_selection = bool(pictos)
 
     def style_for(control: str) -> StyleRule:
+        """Return the visible style only for required Picto controls.
+
+        Args:
+            control: The logical Picto control name to inspect.
+
+        Returns:
+            The visible style when the control is required, otherwise the hidden
+            style.
+        """
+
         return VISIBLE_STYLE if control in required_controls else HIDDEN_STYLE
 
     return (
@@ -436,7 +554,60 @@ def update_calculator_result(
     verso_stunned: ToggleInput,
     verso_speed_bonus: ToggleInput,
 ) -> tuple[ComponentChildren, ComponentChildren]:
-    """Recalculate the selected skill and rebuild both result panels."""
+    """Recalculate the selected skill and rebuild both calculator panels.
+
+    Args:
+        character: The selected calculator character id.
+        skill: The currently selected skill name.
+        attack: The raw attack power input.
+        pictos: The selected Picto names.
+        picto_attack_type: The optional Picto attack-type override.
+        picto_below_10_health: Whether the user is below 10% health.
+        picto_target_burning: Whether the target is burning.
+        picto_target_stunned: Whether the target is stunned.
+        picto_exhausted: Whether the user is exhausted.
+        picto_full_health: Whether the user is at full health.
+        picto_unhit: Whether the user has not been hit yet.
+        picto_inverted: Whether the user is inverted.
+        picto_consume_ap: Whether the hit consumes AP.
+        picto_shield_points: The current shield-point count.
+        picto_fighting_alone: Whether the active character is alone.
+        picto_all_allies_alive: Whether all allies are alive.
+        picto_status_effects: The number of status effects on self.
+        picto_dodge_stacks: The current dodge stack count.
+        picto_parry_stacks: The current parry stack count.
+        picto_warming_up_stacks: The current Warming Up stack count.
+        picto_first_hit: Whether the current hit is the first hit of battle.
+        gustave_charges: Gustave's Overcharge count.
+        lune_stains: Lune's active stain count.
+        lune_turns: The number of turns elapsed for Lune.
+        lune_all_crits: Whether all relevant Lune hits crit.
+        maelle_stance: Maelle's current stance.
+        maelle_burn_stacks: Burn stacks used by Maelle's skill logic.
+        maelle_hits_taken: Hits Maelle took in the previous round.
+        maelle_marked: Whether the target is marked for Maelle.
+        maelle_all_crits: Whether all relevant Maelle hits crit.
+        monoco_turns: Burn turns elapsed for Monoco.
+        monoco_mask: Whether Monoco's mask bonus is active.
+        monoco_stunned: Whether the target is stunned for Monoco.
+        monoco_marked: Whether the target is marked for Monoco.
+        monoco_powerless: Whether the target is powerless.
+        monoco_burning: Whether the target is burning.
+        monoco_low_life: Whether the target is at low life.
+        monoco_full_life: Whether the target is at full life.
+        monoco_all_crits: Whether all relevant Monoco hits crit.
+        sciel_foretell: Sciel's applied foretell count.
+        sciel_twilight: Whether Twilight is active for Sciel.
+        sciel_full_life: Whether Sciel is at full life.
+        verso_rank: Verso's current rank.
+        verso_shots: The number of stored shots for Follow Up.
+        verso_uses: The use count for repeat-use Verso skills.
+        verso_stunned: Whether Verso's target is stunned.
+        verso_speed_bonus: Whether Verso has the full speed bonus active.
+
+    Returns:
+        A tuple containing the rebuilt result-card body and summary-card body.
+    """
 
     selected_character = character or DEFAULT_CHARACTER
     row = get_row(selected_character, skill)

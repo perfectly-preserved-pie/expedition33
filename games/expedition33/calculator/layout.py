@@ -24,7 +24,16 @@ from games.expedition33.calculator.pictos import PICTO_OPTIONS, PictoSummary
 
 
 def build_badges(character: str, row: CalculatorRow, current_cost: str) -> ComponentChildren:
-    """Build metadata badges shown above the result cards."""
+    """Build metadata badges shown above the result cards.
+
+    Args:
+        character: The calculator character id.
+        row: The selected skill row.
+        current_cost: The AP cost string after state-based adjustments.
+
+    Returns:
+        A list of Mantine badge components describing the selected skill.
+    """
 
     difficulty = clean_text(row.get("Game Description")).title()
     difficulty_color = {
@@ -56,7 +65,15 @@ def build_badges(character: str, row: CalculatorRow, current_cost: str) -> Compo
 
 
 def build_picto_section(picto_summary: PictoSummary) -> Any | None:
-    """Summarize active and inactive Pictos in the result card."""
+    """Build the Picto summary section for the result card.
+
+    Args:
+        picto_summary: The evaluated Picto summary for the selected state.
+
+    Returns:
+        A Dash component describing active and inactive Pictos, or ``None`` when
+        no Pictos are selected.
+    """
 
     if not picto_summary["active"] and not picto_summary["inactive"]:
         return None
@@ -95,7 +112,19 @@ def build_result_body(
     skill_result: CalculationResult,
     picto_summary: PictoSummary,
 ) -> ComponentChildren:
-    """Build the result card body for the selected skill state."""
+    """Build the main result card body for the selected state.
+
+    Args:
+        character: The calculator character id.
+        row: The selected skill row.
+        attack: The effective attack power used for damage estimation.
+        current_cost: The AP cost string after state-based adjustments.
+        skill_result: The calculated result for the selected skill state.
+        picto_summary: The evaluated Picto summary for the selected state.
+
+    Returns:
+        The list of Dash children rendered inside the primary result card.
+    """
 
     multiplier = skill_result.get("multiplier")
     damage = calculate_damage(attack, multiplier if isinstance(multiplier, (int, float)) else None)
@@ -174,7 +203,16 @@ def build_result_body(
 
 
 def build_summary_body(row: CalculatorRow, attack: float | None, picto_factor: float) -> ComponentChildren:
-    """Build the spreadsheet breakpoint summary table."""
+    """Build the spreadsheet breakpoint summary table.
+
+    Args:
+        row: The selected skill row.
+        attack: The effective attack power used for the displayed damage values.
+        picto_factor: The combined Picto multiplier applied to the summary rows.
+
+    Returns:
+        The list of Dash children rendered inside the summary card body.
+    """
 
     rows = build_sheet_rows(row)
     header_attack = format_value(attack) if attack is not None else "-"
@@ -215,7 +253,15 @@ def build_summary_body(row: CalculatorRow, attack: float | None, picto_factor: f
 
 
 def build_empty_control_notice(character: str) -> html.Div:
-    """Build the placeholder shown when a skill has no extra inputs."""
+    """Build the placeholder shown when a skill has no extra inputs.
+
+    Args:
+        character: The calculator character id.
+
+    Returns:
+        A hidden placeholder div that is revealed when no controls are needed
+        for the selected skill.
+    """
 
     return html.Div(
         dmc.Text(

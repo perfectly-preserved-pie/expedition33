@@ -3,6 +3,7 @@ from dash import Input, Output, State, callback, callback_context, dcc, html, no
 from dash.exceptions import PreventUpdate
 from games.expedition33.helpers import build_tab_payloads, format_value
 from pathlib import Path
+from typing import Any
 import dash_ag_grid as dag
 import dash_bootstrap_components as dbc
 
@@ -61,7 +62,17 @@ modal = dbc.Modal(
 )
 
 
-def format_modal_value(value) -> str:
+def format_modal_value(value: Any) -> str:
+    """Format a value for display inside the skill detail modal.
+
+    Args:
+        value: The raw row value selected from the grid.
+
+    Returns:
+        A user-facing string, with booleans rendered as ``Yes`` or ``No`` and
+        all other values delegated to the shared formatter.
+    """
+
     if value is None:
         return "-"
     if isinstance(value, bool):
@@ -106,6 +117,16 @@ layout = html.Div(
     Input("exp33-skill-damage-tabs", "active_tab"),
 )
 def update_grid_for_tab(active_tab: str) -> tuple[list[dict], list[dict]]:
+    """Swap the skill grid payload when the active tab changes.
+
+    Args:
+        active_tab: The currently selected character tab id.
+
+    Returns:
+        A two-item tuple containing the row data and column definitions for the
+        requested tab, or the default tab if the id is unknown.
+    """
+
     payload = tab_payloads.get(active_tab) or tab_payloads[default_tab]
     return payload["rowData"], payload["columnDefs"]
 
@@ -120,7 +141,28 @@ def update_grid_for_tab(active_tab: str) -> tuple[list[dict], list[dict]]:
     State("exp33-skill-damage-grid", "virtualRowData"),
     prevent_initial_call=True,
 )
-def open_and_populate_modal(cell_clicked_data, _close_btn_clicks, _modal_open, virtual_row_data):
+def open_and_populate_modal(
+    cell_clicked_data: dict[str, Any] | None,
+    _close_btn_clicks: int | None,
+    _modal_open: bool,
+    virtual_row_data: list[dict[str, Any]] | None,
+) -> tuple[bool, Any, Any]:
+    """Open the skill detail modal for the clicked grid row.
+
+    Args:
+        cell_clicked_data: The Dash AG Grid click payload for the selected
+            cell.
+        _close_btn_clicks: The close button click count. It is unused beyond
+            triggering the callback.
+        _modal_open: The current modal state. It is unused because the callback
+            always recomputes the next state.
+        virtual_row_data: The currently visible grid rows, used as a fallback
+            lookup when the click payload omits the row data.
+
+    Returns:
+        A tuple of ``(is_open, header_children, body_children)`` for the modal.
+    """
+
     ctx = callback_context
     if not ctx.triggered:
         raise PreventUpdate

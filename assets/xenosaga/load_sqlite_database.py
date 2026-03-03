@@ -3,11 +3,19 @@ from pathlib import Path
 from typing import Optional
 
 def load_sqlite_database(db_path: Optional[Path] = None) -> Connection:
-    """Load the SQLite database and return a connection object.
+    """Open the bundled Xenosaga SQLite database.
 
-    If ``db_path`` is not provided it defaults to the bundled
-    ``xenosaga.db`` located next to this module.
+    Args:
+        db_path: An optional path override for the SQLite database file. When
+            omitted, the bundled ``xenosaga.db`` next to this module is used.
+
+    Returns:
+        An open SQLite connection to the requested database file.
+
+    Raises:
+        FileNotFoundError: If the resolved database path does not exist.
     """
+
     if db_path is None:
         db_path = Path(__file__).parent / "xenosaga.db"
 

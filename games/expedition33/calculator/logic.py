@@ -30,7 +30,16 @@ SCIEL_FORETELL_RATES = {
 
 
 def calculate_gustave(row: CalculatorRow, state: CalculatorState) -> CalculationResult:
-    """Calculate Gustave skill damage from charge-based state."""
+    """Calculate Gustave's effective skill multiplier.
+
+    Args:
+        row: The selected Gustave skill row.
+        state: The normalized Gustave control state.
+
+    Returns:
+        A normalized calculation result describing the effective multiplier and
+        scenario for the selected skill.
+    """
 
     skill = clean_text(row.get("Skill"))
     if skill.startswith("Overcharge"):
@@ -44,7 +53,16 @@ def calculate_gustave(row: CalculatorRow, state: CalculatorState) -> Calculation
 
 
 def calculate_lune(row: CalculatorRow, state: CalculatorState) -> CalculationResult:
-    """Calculate Lune skill damage from stain, turn, and crit state."""
+    """Calculate Lune's effective skill multiplier.
+
+    Args:
+        row: The selected Lune skill row.
+        state: The normalized Lune control state.
+
+    Returns:
+        A normalized calculation result describing the effective multiplier and
+        scenario for the selected skill.
+    """
 
     skill = clean_text(row.get("Skill"))
     base_multiplier = number_from_row(row, "Damage Multi")
@@ -103,7 +121,16 @@ def calculate_lune(row: CalculatorRow, state: CalculatorState) -> CalculationRes
 
 
 def calculate_maelle(row: CalculatorRow, state: CalculatorState) -> CalculationResult:
-    """Calculate Maelle skill damage from burn, marked, and hit-based state."""
+    """Calculate Maelle's effective skill multiplier.
+
+    Args:
+        row: The selected Maelle skill row.
+        state: The normalized Maelle control state.
+
+    Returns:
+        A normalized calculation result describing the effective multiplier and
+        scenario for the selected skill.
+    """
 
     skill = clean_text(row.get("Skill"))
     base_multiplier = number_from_row(row, "Damage Multi")
@@ -116,6 +143,16 @@ def calculate_maelle(row: CalculatorRow, state: CalculatorState) -> CalculationR
     turns = clamp_int(state.get("turns"), 1, 3)
 
     def with_stance(skill_result: CalculationResult) -> CalculationResult:
+        """Apply stance scaling when the selected skill is stance-sensitive.
+
+        Args:
+            skill_result: The base result calculated for the current skill.
+
+        Returns:
+            The original result when no stance bonus applies, otherwise a new
+            result with the stance multiplier folded in.
+        """
+
         multiplier = skill_result.get("multiplier")
         stance_multiplier = {
             "Offensive": 1.5,
@@ -157,7 +194,15 @@ def calculate_maelle(row: CalculatorRow, state: CalculatorState) -> CalculationR
 
 
 def uses_mask_condition(row: CalculatorRow) -> bool:
-    """Return whether a Monoco row's sheet data explicitly depends on mask state."""
+    """Check whether a Monoco row explicitly references mask state.
+
+    Args:
+        row: The selected Monoco skill row.
+
+    Returns:
+        ``True`` when the row's condition or notes mention masks, otherwise
+        ``False``.
+    """
 
     texts = (
         text_from_row(row, "Condition 1"),
@@ -168,13 +213,29 @@ def uses_mask_condition(row: CalculatorRow) -> bool:
 
 
 def monoco_mask_type(row: CalculatorRow) -> str:
-    """Return Monoco's mask type for rows that can receive generic mask bonuses."""
+    """Read the mask type associated with a Monoco skill row.
+
+    Args:
+        row: The selected Monoco skill row.
+
+    Returns:
+        The normalized mask label from the row, or an empty string when the row
+        has no mask value.
+    """
 
     return clean_text(row.get("Mask")).strip()
 
 
 def has_explicit_monoco_mask_breakpoint(row: CalculatorRow) -> bool:
-    """Return whether the sheet already provides a masked damage breakpoint."""
+    """Check whether the sheet already includes a mask-specific breakpoint.
+
+    Args:
+        row: The selected Monoco skill row.
+
+    Returns:
+        ``True`` when the row's condition columns already describe a masked
+        breakpoint, otherwise ``False``.
+    """
 
     texts = (
         text_from_row(row, "Condition 1"),
@@ -184,14 +245,32 @@ def has_explicit_monoco_mask_breakpoint(row: CalculatorRow) -> bool:
 
 
 def can_apply_generic_monoco_mask_bonus(row: CalculatorRow) -> bool:
-    """Return whether a Monoco row should use the fallback generic mask bonus."""
+    """Determine whether Monoco's generic mask bonus should apply.
+
+    Args:
+        row: The selected Monoco skill row.
+
+    Returns:
+        ``True`` when the row has a non-gradient mask type and no explicit
+        sheet breakpoint for that mask, otherwise ``False``.
+    """
 
     mask_type = monoco_mask_type(row).upper()
     return bool(mask_type and mask_type != "GRADIENT" and not has_explicit_monoco_mask_breakpoint(row))
 
 
 def apply_monoco_mask_bonus(row: CalculatorRow, skill_result: CalculationResult) -> CalculationResult:
-    """Apply Monoco's generic mask bonus when the sheet lacks an explicit masked value."""
+    """Apply Monoco's fallback generic mask multiplier.
+
+    Args:
+        row: The selected Monoco skill row.
+        skill_result: The current calculated result before any generic mask
+            bonus is applied.
+
+    Returns:
+        The original result when no generic mask bonus applies, otherwise a new
+        result with the mask multiplier included.
+    """
 
     multiplier = skill_result.get("multiplier")
     if multiplier is None or not can_apply_generic_monoco_mask_bonus(row):
@@ -210,7 +289,16 @@ def apply_monoco_mask_bonus(row: CalculatorRow, skill_result: CalculationResult)
 
 
 def calculate_monoco(row: CalculatorRow, state: CalculatorState) -> CalculationResult:
-    """Calculate Monoco skill damage from mask and target status state."""
+    """Calculate Monoco's effective skill multiplier.
+
+    Args:
+        row: The selected Monoco skill row.
+        state: The normalized Monoco control state.
+
+    Returns:
+        A normalized calculation result describing the effective multiplier and
+        scenario for the selected skill.
+    """
 
     skill = clean_text(row.get("Skill"))
     base_multiplier = number_from_row(row, "Damage Multi")
@@ -227,6 +315,16 @@ def calculate_monoco(row: CalculatorRow, state: CalculatorState) -> CalculationR
     all_crits = bool(state.get("all_crits"))
 
     def with_generic_mask(skill_result: CalculationResult) -> CalculationResult:
+        """Conditionally apply Monoco's generic mask bonus.
+
+        Args:
+            skill_result: The base result calculated for the current skill.
+
+        Returns:
+            The original result when the mask is inactive, otherwise the result
+            after applying any eligible generic mask bonus.
+        """
+
         if not mask_active:
             return skill_result
         return apply_monoco_mask_bonus(row, skill_result)
@@ -310,7 +408,15 @@ def calculate_monoco(row: CalculatorRow, state: CalculatorState) -> CalculationR
 
 
 def effective_sciel_foretell(foretell: int, twilight: bool) -> int:
-    """Return Sciel's Twilight-adjusted foretell without imposing a global cap."""
+    """Calculate Sciel's Twilight-adjusted foretell count.
+
+    Args:
+        foretell: The applied foretell count from the UI.
+        twilight: Whether Twilight is currently active.
+
+    Returns:
+        The effective foretell count used by Sciel's formulas.
+    """
 
     if twilight:
         return max(foretell, 0) * 2
@@ -318,7 +424,16 @@ def effective_sciel_foretell(foretell: int, twilight: bool) -> int:
 
 
 def calculate_sciel(row: CalculatorRow, state: CalculatorState) -> CalculationResult:
-    """Calculate Sciel skill damage from foretell, twilight, and life state."""
+    """Calculate Sciel's effective skill multiplier.
+
+    Args:
+        row: The selected Sciel skill row.
+        state: The normalized Sciel control state.
+
+    Returns:
+        A normalized calculation result describing the effective multiplier and
+        scenario for the selected skill.
+    """
 
     skill = clean_text(row.get("Skill"))
     base_multiplier = number_from_row(row, "Damage Multi")
@@ -377,7 +492,17 @@ def calculate_sciel(row: CalculatorRow, state: CalculatorState) -> CalculationRe
 
 
 def apply_verso_rank_bonus(rank: str, skill_result: CalculationResult) -> CalculationResult:
-    """Apply Verso's general rank bonus unless the sheet value already includes it."""
+    """Apply Verso's general rank multiplier when appropriate.
+
+    Args:
+        rank: The currently selected Verso rank.
+        skill_result: The current calculated result before the general rank
+            bonus is applied.
+
+    Returns:
+        The original result when no general rank bonus applies, otherwise a new
+        result with the rank multiplier included.
+    """
 
     multiplier = skill_result.get("multiplier")
     source = skill_result.get("source", "")
@@ -404,7 +529,16 @@ def apply_verso_rank_bonus(rank: str, skill_result: CalculationResult) -> Calcul
 
 
 def calculate_verso(row: CalculatorRow, state: CalculatorState) -> CalculationResult:
-    """Calculate Verso skill damage from rank and setup state."""
+    """Calculate Verso's effective skill multiplier.
+
+    Args:
+        row: The selected Verso skill row.
+        state: The normalized Verso control state.
+
+    Returns:
+        A normalized calculation result describing the effective multiplier and
+        scenario for the selected skill.
+    """
 
     skill = clean_text(row.get("Skill"))
     base_multiplier = number_from_row(row, "Damage Multi")
@@ -480,13 +614,30 @@ def calculate_skill_result(
     row: CalculatorRow,
     state: CalculatorState,
 ) -> CalculationResult:
-    """Dispatch skill calculation to the character-specific calculator."""
+    """Dispatch calculation to the active character-specific handler.
+
+    Args:
+        character: The calculator character id.
+        row: The selected skill row for that character.
+        state: The normalized character state from the UI.
+
+    Returns:
+        The calculated result produced by the character-specific calculator.
+    """
 
     return CALCULATORS[character](row, state)
 
 
 def resolve_picto_attack_type(row: CalculatorRow, override: str | None) -> str:
-    """Resolve the attack type used by attack-specific Picto bonuses."""
+    """Resolve the attack type used for Picto evaluation.
+
+    Args:
+        row: The selected calculator row.
+        override: The optional Picto attack-type override from the UI.
+
+    Returns:
+        The attack type label used to evaluate attack-specific Picto bonuses.
+    """
 
     if override and override != "Auto":
         return override
@@ -504,7 +655,17 @@ def resolve_picto_attack_type(row: CalculatorRow, override: str | None) -> str:
 
 
 def apply_picto_bonus(skill_result: CalculationResult, picto_summary: PictoSummary) -> CalculationResult:
-    """Apply the combined Picto multiplier to the calculated skill result."""
+    """Apply the combined Picto multiplier to a skill result.
+
+    Args:
+        skill_result: The calculated result before Picto scaling.
+        picto_summary: The evaluated Picto summary containing the combined
+            multiplier and status details.
+
+    Returns:
+        The original result when no Picto multiplier applies, otherwise a new
+        result with the Picto factor folded into the multiplier.
+    """
 
     multiplier = skill_result.get("multiplier")
     total_factor = picto_summary["total_factor"]
@@ -520,7 +681,15 @@ def apply_picto_bonus(skill_result: CalculationResult, picto_summary: PictoSumma
 
 
 def build_skill_control_styles(character: str, row: CalculatorRow) -> ControlStyles:
-    """Return per-control visibility styles for the selected character skill."""
+    """Build per-control visibility styles for the selected skill.
+
+    Args:
+        character: The calculator character id.
+        row: The selected skill row for that character.
+
+    Returns:
+        A mapping of control ids to visibility styles used by the setup panel.
+    """
 
     skill = clean_text(row.get("Skill"))
     condition = text_from_row(row, "Condition 1", "Condition").lower()
@@ -528,6 +697,16 @@ def build_skill_control_styles(character: str, row: CalculatorRow) -> ControlSty
     styles: ControlStyles = {}
 
     def set_visibility(control: str, is_visible: bool) -> None:
+        """Store a visible or hidden style for a control.
+
+        Args:
+            control: The logical control name.
+            is_visible: Whether the control should be shown.
+
+        Returns:
+            ``None``. The function mutates ``styles`` in place.
+        """
+
         styles[control] = VISIBLE_STYLE if is_visible else HIDDEN_STYLE
 
     if character == "gustave":

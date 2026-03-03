@@ -5,6 +5,16 @@ from typing import Any
 import pandas as pd
 
 def clean_frame(frame: pd.DataFrame) -> pd.DataFrame:
+    """Normalize a raw spreadsheet export before displaying it.
+
+    Args:
+        frame: The source DataFrame loaded from a CSV sheet.
+
+    Returns:
+        A cleaned DataFrame with unnamed columns normalized, junk columns
+        removed, and fully empty rows dropped.
+    """
+
     frame = frame.dropna(axis=1, how="all")
 
     # Keep non-empty columns even when the source header is blank
@@ -40,6 +50,16 @@ def clean_frame(frame: pd.DataFrame) -> pd.DataFrame:
 
 
 def build_column_defs(frame: pd.DataFrame) -> list[dict[str, Any]]:
+    """Build ag-grid column definitions for an Expedition 33 table.
+
+    Args:
+        frame: The cleaned DataFrame used to infer column names and filter
+            types.
+
+    Returns:
+        A list of ag-grid column definition dictionaries.
+    """
+
     column_defs: list[dict[str, Any]] = []
     for column in frame.columns:
         numeric_col = is_numeric_dtype(frame[column])
@@ -58,6 +78,16 @@ def build_column_defs(frame: pd.DataFrame) -> list[dict[str, Any]]:
 
 
 def format_value(value: Any) -> str:
+    """Format a table or modal value for display.
+
+    Args:
+        value: The raw value pulled from a DataFrame record.
+
+    Returns:
+        A user-facing string with empty values replaced by ``-`` and numeric
+        values formatted with thousands separators.
+    """
+
     if value is None:
         return "-"
     if isinstance(value, str) and value == "":
@@ -74,6 +104,17 @@ def format_value(value: Any) -> str:
 
 
 def build_tab_payloads(tab_config: list[dict[str, str]], csv_dir: Path) -> dict[str, dict[str, Any]]:
+    """Load row and column payloads for each tabbed CSV view.
+
+    Args:
+        tab_config: The tab metadata describing which CSV file backs each tab.
+        csv_dir: The directory containing the per-tab CSV files.
+
+    Returns:
+        A mapping of tab ids to ag-grid payload dictionaries containing
+        ``rowData`` and ``columnDefs``.
+    """
+
     payloads: dict[str, dict[str, Any]] = {}
     for tab in tab_config:
         tab_id = tab["tab_id"]

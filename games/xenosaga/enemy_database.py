@@ -4,6 +4,7 @@ from dash import Input, Output, State, callback, callback_context, dcc, html, no
 from dash_iconify import DashIconify
 from dash.exceptions import PreventUpdate
 from games.xenosaga.helpers import apply_element_style, build_column_defs, format_value, load_episode_rows
+from typing import Any
 import dash_ag_grid as dag
 import dash_bootstrap_components as dbc
 import pandas as pd
@@ -116,6 +117,16 @@ layout = html.Div(
     Input("xenosaga-tabs", "active_tab"),
 )
 def update_grid_for_episode(active_tab: str) -> tuple[list[dict], list[dict]]:
+    """Swap the enemy grid payload when the selected episode changes.
+
+    Args:
+        active_tab: The id of the currently selected episode tab.
+
+    Returns:
+        A two-item tuple containing the row data and column definitions for the
+        chosen episode, or the Episode I payload if the tab is unknown.
+    """
+
     payload = episode_payloads.get(active_tab) or episode_payloads["ep1"]
     return payload["rowData"], payload["columnDefs"]
 
@@ -130,7 +141,28 @@ def update_grid_for_episode(active_tab: str) -> tuple[list[dict], list[dict]]:
     State("xenosaga-grid", "virtualRowData"),
     prevent_initial_call=True,
 )
-def open_and_populate_modal(cell_clicked_data, close_btn_clicks, modal_open, virtual_row_data):
+def open_and_populate_modal(
+    cell_clicked_data: dict[str, Any] | None,
+    close_btn_clicks: int | None,
+    modal_open: bool,
+    virtual_row_data: list[dict[str, Any]] | None,
+) -> tuple[bool, Any, Any]:
+    """Open or close the enemy detail modal based on user interaction.
+
+    Args:
+        cell_clicked_data: The Dash AG Grid click payload for the selected
+            enemy row.
+        close_btn_clicks: The close button click count. It is only used as a
+            callback trigger.
+        modal_open: The current modal state. It is unused because the callback
+            computes a fresh state each time.
+        virtual_row_data: The visible grid rows, used as a fallback lookup when
+            the click payload omits row data.
+
+    Returns:
+        A tuple of ``(is_open, header_children, body_children)`` for the modal.
+    """
+
     ctx = callback_context
     if not ctx.triggered:
         raise PreventUpdate

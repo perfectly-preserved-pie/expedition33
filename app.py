@@ -7,11 +7,11 @@ import dash_mantine_components as dmc
 from dash_iconify import DashIconify
 
 def build_games_tree() -> list[dict[str, Any]]:
-    """
-    Build dmc.Tree data from Dash Pages registry.
+    """Build Mantine tree data from the registered Dash pages.
 
-    - Leaves use value=<page path> so selection can drive navigation.
-    - Game grouping nodes use a prefixed value to guarantee uniqueness.
+    Returns:
+        A list of tree node dictionaries grouped by game. Leaf nodes store the
+        Dash page path as their ``value`` so selection can drive navigation.
     """
     games: dict[str, list[dict[str, Any]]] = {}
 
@@ -60,11 +60,12 @@ app = dash.Dash(
 dmc.pre_render_color_scheme()
 
 def home_layout() -> dbc.Container:
-    """
-    Build the Home page layout.
+    """Build the home page layout.
 
-    Returns a fresh component tree on each render so `games-tree` starts with
-    `selected=[]`, which allows selecting the same leaf again after navigating back.
+    Returns:
+        A fresh Bootstrap container for the home page. Rebuilding the layout on
+        each render resets the tree selection so the same page can be selected
+        again after navigating back.
     """
     return dbc.Container(
         [
@@ -161,9 +162,13 @@ app.layout = dmc.MantineProvider(
     prevent_initial_call=True,
 )
 def navigate_from_tree(selected: list[str] | None) -> str:
-    """
-    Navigate to the selected leaf node (page path).
-    Parent nodes are ignored (they use 'game:<name>' values).
+    """Resolve a tree selection into a Dash pathname.
+
+    Args:
+        selected: The list of selected tree node values from the Mantine tree.
+
+    Returns:
+        The pathname for the selected leaf node.
     """
     if not selected:
         raise dash.exceptions.PreventUpdate
