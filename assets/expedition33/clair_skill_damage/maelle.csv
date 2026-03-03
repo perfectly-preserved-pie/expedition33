@@ -1,26 +1,36 @@
-Skill,Damage Multi,Condition,DmMax,Notes,Stance,AOE,Break Multi,Cost,BaseDmg/AP,MaxDmg/AP,Game Description,Base Attack,Test AP,Test 1,T2,,
-Gommage,60.00,,60.00,"Instantly kills ""weak"" enemies.",Virtuoso,FALSE,1,Gradient 3,,,extreme,1261,1261,75660,75660,,
-Burning Canvas,2.80,100Burn Stacks,30.80,10% more dmg per burn up to +1000%. Applies burn each hit. 5 hits and the consecutive hits already benefit from the burns,Offensive,FALSE,0.3,5,0.56,6.16,high,1261,1261,3530,3934,,
-Stendhal,21.00,,21.00,Applies Defenseless to Maelle 5turns and removes her shields,Stanceless,FALSE,1,8,2.63,2.63,extreme,1261,1261,26481,26481,,
-G-Homage,7.20,Marked,10.80,"50% increased Dmg vs Marked, Doesnt Consume Mark",Virtuoso,FALSE,0.1,8,0.90,1.35,high,1261,1261,9081,13622,,
-Sword Ballet,5.28,All crits,10.56,Double on Crits,Defensive,,0.3,9,0.59,1.17,extreme,1261,1261,6660,13320,,
-Combustion,1.92,Consume 10Burn,9.60,Consumes burns for +40% dmg each up to 10Burns. ,Offensive,FALSE,0.7,4,0.48,2.40,medium,1261,1261,2421,12105,,
-Momentum Strike,4.20,Marked,8.40,-3 Ap cost in Virtuoso Stance. Double Dmg vs Marked,Defensive,,1,7,0.60,1.20,high,1261,1261,5296,10592,,
-Payback,8.00,,8.00,1 less AP cost for each parried attack this turn,Defensive,FALSE,1,9,0.89,0.89,very high,1261,1261,10088,10088,,
-Pyrolyse,5.67,,5.67,"Applies 15 Burn, 21 in Offensive Stance. Burn total: +6.03/+8.44",Defensive,FALSE,0.5,9,0.63,0.63,extreme,1261,1261,7146,7146,,
-Percee,2.64,Marked,5.28,"2xDMG vs marked, before the 1.5x mark bonus. -3 Cost in Virtuoso",Defensive,FALSE,1,5,0.53,1.06,medium,1261,1261,3329,6658,,
-Phantom Strike,4.70,,4.70,Fills Gradient Metre 35%,Defensive,TRUE,0.4,7,0.67,0.67,very high,1261,1261,5932,5932,,
-Revenge,1.44,1 Hit taken,3.60,150% More damage for each hit taken last round. Can Break,Defensive,,1,5,0.29,0.72,high,1261,1261,1816,4540,,
-Rain of Fire,3.25,,3.25,"Applies 3 Burn, 5 in Defensive Stance. Burn total: +1.2/+2.01",Offensive,,0.7,5,0.65,0.65,medium,1261,1261,4099,4099,,
-Fleuret Fury,2.88,,2.88,"Breaks, Only stays in Virtuoso Stance",Virtuoso*,FALSE,0.5,6,0.48,0.48,high,1261,1261,3633,3633,,
-Burn 5,0.67,3 Turns,2.01,,,,,5,0.13,0.40,,1261,1261,843,2529,,
-Virtuose Strike,1.80,,1.80,,Virtuoso,FALSE,0.3,Gradient 1,,,high,1261,1261,2270,2270,,
-Fencer's Flurry,1.68,,1.68,Applies Defenseless 1turn,Offensive,TRUE,1,4,0.42,0.42,medium,1261,1261,2118,2118,,Video Guide
-Breaking Rules,1.65,,1.65,"Removes Shields, +1Ap per shield. Play again vs Defenseless",Offensive,,1,3,0.55,0.55,low,1261,1261,2081,2081,,
-Spark,1.40,Total Burn 5,1.40,"Applies 3 Burn, 5 Burn in Offensive Stance. Burn total: +1.2/+2.01",Defensive,,1,3,0.47,0.47,low,1261,1261,1765,1765,,Maelle Skill Tierlist
-Offensive Switch,1.20,,1.20,Applies Defenseless 3turns,Offensive,,1,1,1.20,1.20,low,1261,1261,1513,1513,,
-Degagement,1.20,,1.20,Applies Fire Weakness 2 turns,Offensive,FALSE,1,2,0.60,0.60,low,1261,1261,1513,1513,,Gradient Attack Tierlist
-Swift Stride,1.00,,1.00,"Virtuoso agains Burning enemy. No QTE dmg boost, restores 0-2AP",Virtuoso*,FALSE,1,3,0.33,0.33,low,1261,1261,1261,1261,,
-Basic Attack,1.00,,1.00,,,FALSE,,,,,,1261,1261,1261,1261,,All Characters
-Burn 1,0.13,3 Turns,0.40,,,,,2,0.07,0.20,,1261,1261,169,507,,
-Ranged Attack,0.15,,0.00,,,FALSE,,,,,,1261,1261,227,,,Break Damage Guide
+Skill,Damage Multi,Condition,DmMax,Notes,Stance,AOE,Cost,Game Description,Base Attack,Test AP,Attack Type,Target,Element,Skill Points Cost,Base Scaling,Hit Count,Conditional Scaling,Maelle Mode
+Breaking Rules,1.5,,1.5,"Destroys all target's shields before doing damage. Gain 1 AP per shield destroyed. If the target is Defenceless, play a second turn.",Offensive,FALSE,3.0,low,1261,1261,Skill,Single,Physical,4.0,0.75,2,1,direct
+Combustion,1.6,Consume 10 Burn,8,"Can consume up to 10 Burn stacks for increased damage.
+Damage bonus is (1+0.4 * stacks), max stacks is thus times 5",Offensive,FALSE,4.0,medium,1261,1261,Skill,Single,Physical,6.0,0.8,2,5,combustion
+Degagement,1,,1,Target becomes weak to Fire damage for 2 turns.,Offensive,FALSE,2.0,low,1261,1261,Skill,Single,Fire,2.0,1,1,1,direct
+Egide,,,,"Protects Allies by taking damage in their place, for 2 turns. Duration extended by 1 on gaining Shell. Works like a taunt, you can still parry or dodge as Maelle",Defensive,FALSE,3.0,,1261,1261,Skill,Self,,4.0,,,,direct
+Fencer's Flurry,1.4,,1.4,Applies Defenseless for 1 turn,Offensive,TRUE,3.0,medium,1261,1261,Skill,AoE,Weapon,4.0,1.4,1,1,direct
+Fleuret Fury,2.4,,2.4,"If in Virtuose Stance, stay in Virtuose Stance. Can Break",Stanceless,FALSE,6.0,high,1261,1261,Skill,Single,Physical,2.0,0.8,3,1,direct
+Guard Down,,,,Applies Defenseless to all enemies for 3 turns,Offensive,TRUE,3.0,,1261,1261,Skill,AoE,,4.0,,,,direct
+Guard Up,,,,"Applies Shell, reducing damage taken to up to all allies for 3 turns",Offensive,TRUE,3.0,,1261,1261,Skill,Party,,2.0,,,,direct
+Last Chance,,,,Change stance to Virtuose. Reduce self HP to 1 but refills all AP.,Virtuoso,FALSE,1.0,,1261,1261,Skill,Self,,6.0,,,,direct
+Mezzo Forte,,,,Reapplies current stance and increases AP by 1-3.,,FALSE,1.0,,1261,1261,Skill,Self,,4.0,,,,direct
+Momentum Strike,3.5,Marked,7,Increased damage to Marked targets. 4 AP cost in Virtuose Stance,Defensive,FALSE,7.0,high,1261,1261,Skill,Single,Weapon,6.0,3.5,1,2,marked
+Offensive Switch,1,,1,Applies Defenceless for 3 turns.,Offensive,FALSE,1.0,low,1261,1261,Skill,Single,Weapon,Available from start,1,1,1,direct
+Payback,5,,5,Reduced AP cost for each attack parried since the last turn. Can Break,Defensive,FALSE,9.0,very high,1261,1261,Skill,Single,Physical,8.0,5,1,1,direct
+Percee,2.2,Marked,4.4,Increased damage to Marked targets. 2 AP cost in Virtuose Stance,Defensive,FALSE,5.0,medium,1261,1261,Skill,Single,Physical,Available from start,2.2,1,2,marked
+Pyrolyse,5.0001,,5.0001,Applies 5 Burn per hit. Offensive Stance: Applies 2 more Burn per hit,Defensive,FALSE,9.0,extreme,1261,1261,Skill,Single,Fire,8.0,1.6667,3,1,direct
+Rain of Fire,1.6,,1.6,Applies 3 Burn per hit. Defensive Stance: Applies 2 more Burn per hit,Offensive,FALSE,5.0,medium,1261,1261,Skill,Single,Fire,4.0,0.8,2,1,direct
+Revenge,1.2,3 hits taken,6.6,"Damage increased for each hit received since the previous turn. Can Break.
+1.5 per hit, conditional will assume 3 hits. As individual effects are additive, 3 stacks (0.5 each) would mean 2.5 mult. Needs testing to make sure this is correct info
+Other mod suggests +150% per stack, making 3 stacks a times 5,5",Defensive,FALSE,5.0,high,1261,1261,Skill,Single,Fire,6.0,1.2,1,5.5,revenge
+Spark,1,,1,Applies 3 Burn. Offensive Stance: Applies 2 more Burn,Defensive,FALSE,3.0,low,1261,1261,Skill,Single,Fire,Available from start,1,1,1,direct
+Swift Stride,1,,1,Switch to Virtuose stance if the target is burning. Gain 0-2 AP.,Stanceless,FALSE,3.0,low,1261,1261,Skill,Single,Physical,1.0,1,1,1,direct
+Sword Ballet,3.75,All crits,7.5,Critical hits deal double damage (x2) on top of the crit damage of 1.5 times. Conditional assumes 100% crit rate,Defensive,FALSE,9.0,extreme,1261,1261,Skill,Single,Weapon,8.0,0.75,5,2,all_crits
+Burning Canvas,2,100 Burn Stacks,22.4,"Applies 1 Burn per hit, damage increases per burn stack already on the target. Multiplier is (1+0.1*stacks). Therefore the damage will increase during the skill as each subsequent hit has more Burn stacks to scale off of.
+10 stacks is 2.0 mult.",Offensive,FALSE,5.0,high,1261,1261,Skill,Single,Void,"6, unlocks in Act III",0.4,5,2.2,burning_canvas
+Phantom Strike,2.8,,2.8,Gives 35% of a Gradient Charge,Defensive,TRUE,7.0,very high,1261,1261,Skill,AoE,Void,"4, unlocks in Act III",0.7,4,1,direct
+Stendhal,15,,15,Remove self Shields and self applies Defenseless.,Stanceless,FALSE,8.0,extreme,1261,1261,Skill,Single,Void,"4, unlocks in Act III",15,1,1,direct
+G-Homage,4.5,Marked,6.75,"Increased Damage to Marked Targets, does not remove the Mark. Double damage on the final hit (counted by adding an extra hit)",Virtuoso,FALSE,8.0,high,1261,1261,Skill,Single,Lightning,Finish Gustave's Journal,0.5,9,1.5,marked
+Virtuose Strike,1.5,,1.5,,Virtuoso,TRUE,1 GC,high,1261,1261,Gradient Attack,,Weapon,Upon unlocking Gradient Attacks,0.3,5,1,direct
+Phoenix Flame,,,,Applies 10 Burn to all enemies and revives all Party members to 50-70% HP.,Offensive,TRUE,2 GC,,1261,1261,Gradient Attack,AoE / Party,,Relationship level 4,,,,direct
+Gommage,50,,50,Instantly kills weak targets,Virtuoso,FALSE,3 GC,extreme,1261,1261,Gradient Attack,Single,Void,Relationship level Max,50,1,1,direct
+Burn 5,0.67,3 Turns,2.01,,,,5,,1261,1261,Skill,Single,,,,,,burn
+Burn 1,0.13,3 Turns,0.40,,,,2,,1261,1261,Skill,Single,,,,,,burn
+Basic Attack,1.00,,1.00,,,FALSE,,,1261,1261,Base Attack,Single,,,,,,direct
+Ranged Attack,0.15,,0.00,,,FALSE,,,1261,1261,Free Aim,Single,,,,,,direct

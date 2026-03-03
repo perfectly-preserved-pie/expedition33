@@ -6,6 +6,7 @@ from games.expedition33.calculator.core import (
     CALCULATOR_DATA,
     CalculatorState,
     CharacterStyles,
+    clamp_int,
     ComponentChildren,
     ControlStyles,
     DEFAULT_CHARACTER,
@@ -93,6 +94,11 @@ def empty_state_style(control_styles: ControlStyles, prefix: str) -> StyleRule:
 def build_calculator_states(
     gustave_charges: NumericInput,
     lune_stains: NumericInput,
+    lune_earth_stains: NumericInput,
+    lune_fire_stains: NumericInput,
+    lune_ice_stains: NumericInput,
+    lune_lightning_stains: NumericInput,
+    lune_light_stains: NumericInput,
     lune_turns: NumericInput,
     lune_all_crits: ToggleInput,
     maelle_stance: str | None,
@@ -117,12 +123,18 @@ def build_calculator_states(
     verso_uses: NumericInput,
     verso_stunned: ToggleInput,
     verso_speed_bonus: ToggleInput,
+    verso_missing_health: NumericInput,
 ) -> dict[str, CalculatorState]:
     """Normalize raw callback inputs into per-character calculator state.
 
     Args:
         gustave_charges: Gustave's Overcharge count.
-        lune_stains: Lune's active stain count.
+        lune_stains: Lune's fallback active stain count.
+        lune_earth_stains: Lune's active Earth Stain count.
+        lune_fire_stains: Lune's active Fire Stain count.
+        lune_ice_stains: Lune's active Ice Stain count.
+        lune_lightning_stains: Lune's active Lightning Stain count.
+        lune_light_stains: Lune's active Light Stain count.
         lune_turns: The number of turns elapsed for turn-based Lune skills.
         lune_all_crits: Whether all relevant Lune hits crit.
         maelle_stance: Maelle's current stance.
@@ -147,20 +159,31 @@ def build_calculator_states(
         verso_uses: The use count for repeat-use Verso skills.
         verso_stunned: Whether Verso's target is stunned.
         verso_speed_bonus: Whether Verso has the full speed bonus active.
+        verso_missing_health: Verso's missing HP percentage for Berserk Slash.
 
     Returns:
         A mapping of character ids to the normalized state dictionary expected
         by the calculator logic.
     """
 
+    lune_elemental_stains = {
+        "earth_stains": clamp_int(lune_earth_stains, 0, 4),
+        "fire_stains": clamp_int(lune_fire_stains, 0, 4),
+        "ice_stains": clamp_int(lune_ice_stains, 0, 4),
+        "lightning_stains": clamp_int(lune_lightning_stains, 0, 4),
+        "light_stains": clamp_int(lune_light_stains, 0, 4),
+    }
+    typed_lune_stains = sum(lune_elemental_stains.values())
+
     return {
         "gustave": {
             "charges": gustave_charges,
         },
         "lune": {
-            "stains": lune_stains,
+            "stains": min(4, typed_lune_stains) if typed_lune_stains > 0 else clamp_int(lune_stains, 0, 4),
             "turns": lune_turns,
             "all_crits": lune_all_crits,
+            **lune_elemental_stains,
         },
         "maelle": {
             "stance": maelle_stance,
@@ -192,6 +215,7 @@ def build_calculator_states(
             "uses": verso_uses,
             "stunned": verso_stunned,
             "speed_bonus": verso_speed_bonus,
+            "missing_health": verso_missing_health,
         },
     }
 
@@ -378,6 +402,11 @@ def update_weapon_dropdown(character: str | None) -> tuple[list[SkillOption], No
     Output("exp33-calculator-item-verso", "style"),
     Output("exp33-calculator-control-gustave-charges", "style"),
     Output("exp33-calculator-control-lune-stains", "style"),
+    Output("exp33-calculator-control-lune-earth-stains", "style"),
+    Output("exp33-calculator-control-lune-fire-stains", "style"),
+    Output("exp33-calculator-control-lune-ice-stains", "style"),
+    Output("exp33-calculator-control-lune-lightning-stains", "style"),
+    Output("exp33-calculator-control-lune-light-stains", "style"),
     Output("exp33-calculator-control-lune-turns", "style"),
     Output("exp33-calculator-control-lune-all-crits", "style"),
     Output("exp33-calculator-control-maelle-stance", "style"),
@@ -408,6 +437,7 @@ def update_weapon_dropdown(character: str | None) -> tuple[list[SkillOption], No
     Output("exp33-calculator-control-verso-uses", "style"),
     Output("exp33-calculator-control-verso-stunned", "style"),
     Output("exp33-calculator-control-verso-speed-bonus", "style"),
+    Output("exp33-calculator-control-verso-missing-health", "style"),
     Input("exp33-calculator-character", "value"),
     Input("exp33-calculator-skill", "value"),
     Input("exp33-calculator-weapon", "value"),
@@ -449,6 +479,11 @@ def sync_visible_controls(
         styles["verso"],
         control_style(control_styles, "gustave_charges"),
         control_style(control_styles, "lune_stains"),
+        control_style(control_styles, "lune_earth_stains"),
+        control_style(control_styles, "lune_fire_stains"),
+        control_style(control_styles, "lune_ice_stains"),
+        control_style(control_styles, "lune_lightning_stains"),
+        control_style(control_styles, "lune_light_stains"),
         control_style(control_styles, "lune_turns"),
         control_style(control_styles, "lune_all_crits"),
         control_style(control_styles, "maelle_stance"),
@@ -479,6 +514,7 @@ def sync_visible_controls(
         control_style(control_styles, "verso_uses"),
         control_style(control_styles, "verso_stunned"),
         control_style(control_styles, "verso_speed_bonus"),
+        control_style(control_styles, "verso_missing_health"),
     )
 
 
@@ -630,6 +666,11 @@ def sync_visible_bonus_controls(
     Input("exp33-calculator-weapon-monoco-mask-type", "value"),
     Input("exp33-calculator-gustave-charges", "value"),
     Input("exp33-calculator-lune-stains", "value"),
+    Input("exp33-calculator-lune-earth-stains", "value"),
+    Input("exp33-calculator-lune-fire-stains", "value"),
+    Input("exp33-calculator-lune-ice-stains", "value"),
+    Input("exp33-calculator-lune-lightning-stains", "value"),
+    Input("exp33-calculator-lune-light-stains", "value"),
     Input("exp33-calculator-lune-turns", "value"),
     Input("exp33-calculator-lune-all-crits", "checked"),
     Input("exp33-calculator-maelle-stance", "value"),
@@ -654,6 +695,7 @@ def sync_visible_bonus_controls(
     Input("exp33-calculator-verso-uses", "value"),
     Input("exp33-calculator-verso-stunned", "checked"),
     Input("exp33-calculator-verso-speed-bonus", "checked"),
+    Input("exp33-calculator-verso-missing-health", "value"),
 )
 def update_calculator_result(
     character: str | None,
@@ -691,6 +733,11 @@ def update_calculator_result(
     weapon_monoco_mask_type: str | None,
     gustave_charges: NumericInput,
     lune_stains: NumericInput,
+    lune_earth_stains: NumericInput,
+    lune_fire_stains: NumericInput,
+    lune_ice_stains: NumericInput,
+    lune_lightning_stains: NumericInput,
+    lune_light_stains: NumericInput,
     lune_turns: NumericInput,
     lune_all_crits: ToggleInput,
     maelle_stance: str | None,
@@ -715,6 +762,7 @@ def update_calculator_result(
     verso_uses: NumericInput,
     verso_stunned: ToggleInput,
     verso_speed_bonus: ToggleInput,
+    verso_missing_health: NumericInput,
 ) -> tuple[ComponentChildren, ComponentChildren]:
     """Recalculate the selected skill and rebuild both calculator panels.
 
@@ -753,7 +801,12 @@ def update_calculator_result(
         weapon_critical_hit: Whether the current hit crits.
         weapon_monoco_mask_type: Monoco's current mask.
         gustave_charges: Gustave's Overcharge count.
-        lune_stains: Lune's active stain count.
+        lune_stains: Lune's fallback active stain count.
+        lune_earth_stains: Lune's active Earth Stain count.
+        lune_fire_stains: Lune's active Fire Stain count.
+        lune_ice_stains: Lune's active Ice Stain count.
+        lune_lightning_stains: Lune's active Lightning Stain count.
+        lune_light_stains: Lune's active Light Stain count.
         lune_turns: The number of turns elapsed for Lune.
         lune_all_crits: Whether all relevant Lune hits crit.
         maelle_stance: Maelle's current stance.
@@ -778,6 +831,7 @@ def update_calculator_result(
         verso_uses: The use count for repeat-use Verso skills.
         verso_stunned: Whether Verso's target is stunned.
         verso_speed_bonus: Whether Verso has the full speed bonus active.
+        verso_missing_health: Verso's missing HP percentage for Berserk Slash.
 
     Returns:
         A tuple containing the rebuilt result-card body and summary-card body.
@@ -791,6 +845,11 @@ def update_calculator_result(
     states = build_calculator_states(
         gustave_charges,
         lune_stains,
+        lune_earth_stains,
+        lune_fire_stains,
+        lune_ice_stains,
+        lune_lightning_stains,
+        lune_light_stains,
         lune_turns,
         lune_all_crits,
         maelle_stance,
@@ -815,6 +874,7 @@ def update_calculator_result(
         verso_uses,
         verso_stunned,
         verso_speed_bonus,
+        verso_missing_health,
     )
     picto_state = build_picto_state(
         resolved_picto_attack_type,

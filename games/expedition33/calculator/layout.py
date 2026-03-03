@@ -45,13 +45,17 @@ def build_badges(character: str, row: CalculatorRow, current_cost: str) -> Compo
         "Extreme": "pink",
     }.get(difficulty, "gray")
 
+    target_value = clean_text(row.get("Target"))
     aoe_value = clean_text(row.get("AOE")).upper()
-    aoe_label = "AOE" if aoe_value == "TRUE" else "Single Target"
+    target_label = {
+        "AoE": "AOE",
+        "Single": "Single Target",
+    }.get(target_value, target_value or ("AOE" if aoe_value == "TRUE" else "Single Target"))
 
     badges = [
         dmc.Badge(CHARACTER_META[character]["label"], color="blue", variant="light"),
         dmc.Badge(f"Cost: {current_cost} AP", color="gray", variant="outline"),
-        dmc.Badge(aoe_label, color="teal", variant="outline"),
+        dmc.Badge(target_label, color="teal", variant="outline"),
     ]
 
     if difficulty:
@@ -667,7 +671,7 @@ calculator_controls = dbc.Accordion(
                     html.Div(
                         dmc.NumberInput(
                             id="exp33-calculator-lune-stains",
-                            label="Stains",
+                            label="Total stains",
                             value=0,
                             min=0,
                             max=4,
@@ -677,8 +681,63 @@ calculator_controls = dbc.Accordion(
                     ),
                     html.Div(
                         dmc.NumberInput(
+                            id="exp33-calculator-lune-earth-stains",
+                            label="Earth stains",
+                            value=0,
+                            min=0,
+                            max=4,
+                            step=1,
+                        ),
+                        id="exp33-calculator-control-lune-earth-stains",
+                    ),
+                    html.Div(
+                        dmc.NumberInput(
+                            id="exp33-calculator-lune-fire-stains",
+                            label="Fire stains",
+                            value=0,
+                            min=0,
+                            max=4,
+                            step=1,
+                        ),
+                        id="exp33-calculator-control-lune-fire-stains",
+                    ),
+                    html.Div(
+                        dmc.NumberInput(
+                            id="exp33-calculator-lune-ice-stains",
+                            label="Ice stains",
+                            value=0,
+                            min=0,
+                            max=4,
+                            step=1,
+                        ),
+                        id="exp33-calculator-control-lune-ice-stains",
+                    ),
+                    html.Div(
+                        dmc.NumberInput(
+                            id="exp33-calculator-lune-lightning-stains",
+                            label="Lightning stains",
+                            value=0,
+                            min=0,
+                            max=4,
+                            step=1,
+                        ),
+                        id="exp33-calculator-control-lune-lightning-stains",
+                    ),
+                    html.Div(
+                        dmc.NumberInput(
+                            id="exp33-calculator-lune-light-stains",
+                            label="Light stains",
+                            value=0,
+                            min=0,
+                            max=4,
+                            step=1,
+                        ),
+                        id="exp33-calculator-control-lune-light-stains",
+                    ),
+                    html.Div(
+                        dmc.NumberInput(
                             id="exp33-calculator-lune-turns",
-                            label="Turns / burn ticks",
+                            label="Turns / procs / burn ticks",
                             value=1,
                             min=1,
                             max=5,
@@ -877,6 +936,17 @@ calculator_controls = dbc.Accordion(
                     html.Div(
                         dmc.Switch(id="exp33-calculator-verso-speed-bonus", label="Max speed bonus active"),
                         id="exp33-calculator-control-verso-speed-bonus",
+                    ),
+                    html.Div(
+                        dmc.NumberInput(
+                            id="exp33-calculator-verso-missing-health",
+                            label="Missing HP %",
+                            value=0,
+                            min=0,
+                            max=99,
+                            step=1,
+                        ),
+                        id="exp33-calculator-control-verso-missing-health",
                     ),
                     build_empty_control_notice("verso"),
                 ],

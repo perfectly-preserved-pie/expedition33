@@ -1,54 +1,66 @@
-Skill,Mask,Damage Multi,Condition 1,Dmg Con1,Con Max Dmg,Dmg Max,Notes,AOE,Break Multi,Cost,BaseDmg/AP,MaxDmg/AP,Game Description,Test Basic Attack,Test AP,Test 1,T2,T3,,
-Lampmaster Light 5,ALMIGHTY,21.00,Mask,105.00,Mask 5.Use,105.00,"adds +4.66/23.33 after each use, dmg cap at 5",TRUE,1,5,4.20,21.00,high,1628,1542,,,,,
-Lampmaster Light 4,ALMIGHTY,16.33,Mask,81.67,Mask 4.Use,81.67,"adds +4.66/23.33 after each use, dmg cap at 5",TRUE,1,5,3.27,16.33,high,1628,1542,,,,,
-Lampmaster Light 3,ALMIGHTY,11.67,Mask,58.34,Mask 3.Use,58.34,"adds +4.66/23.33 after each use, dmg cap at 5",TRUE,1,5,2.33,11.67,high,1628,1542,18996,94976,94976,,
-Creation Void,Caster,12.00,Mask,43.20,,43.20,Vs single target,,0.5,9,1.33,4.80,extreme,1628,1542,19539,70337,70337,,
-Breakpoint,Gradient ,40.00,,40.00,,40.00,,FALSE,1,Gradient 3,,,extreme,1628,1542,65126,65126,65126,,
-Mighty Strike,Gradient ,19.20,,19.20,,38.40,Double vs stunned,FALSE,0.7,Gradient 1,,,,1628,1542,31260,31260,31260,,
-Sakapate Estoc,Balanced,1.75,Mask,5.25,Stunned+ Mask,37.80,"x7.2 on stunned (x6 as skill effect, x1.2 general stunned modifier",FALSE,1,3,0.58,12.60,low,1628,1542,2849,8548,61544,,
-Duallist Storm,ALMIGHTY,8.70,Mask,36.25,Mask,36.25,Can break,,0.4,8,1.09,4.53,extreme,1628,1542,14160,59021,59021,,
-Lampmaster Light 2,ALMIGHTY,7.00,Mask,35.00,Mask 2.Use,35.00,"adds +4.66/23.33 after each use, dmg cap at 5",TRUE,1,5,1.40,7.00,high,1628,1542,11398,56986,56986,,
-Sakapate Fire,ALMIGHTY,5.25,Mask,26.25,Mask+ 3T Burn9,28.59,Burn 9,TRUE,0.5,9,0.58,3.18,extreme,1628,1542,8547,42738,46548,,
-Cultist Slashes,Agile,2.45,Mask,8.58,Mask low life,23.89,up to 3.5x Dmg on low life; 8.6 on low life no mask,,0.5,5,0.49,4.78,medium,1628,1542,3990,13961,38892,,
-Sakapate Slam,Heavy,3.50,Mask,10.50,Marked+Mask,21.00,"2xDMG vs marked, before the 1.5x mark bonus",TRUE,1,7,0.50,3.00,high,1628,1542,5699,17096,34191,,Video Guide
-Obscur Sword,Heavy,3.50,Mask,10.50,Powerless+Mask,21.00,Double dmg vs Powerless,FALSE,0.3,6,0.58,3.50,high,1628,1542,5700,17095,34190,,
-Danseuse Waltz,Balanced,4.88,Mask,11.70,Mask +vs Burned,17.55,x1.5 vs burned,,0.5,8,0.61,2.19,high,1628,1542,7938,19050,28575,,Monoco Skill Tierlist
-Portier Crash,Heavy,5.83,Mask,17.50,Mask,17.50,AOE Break,TRUE,1,8,0.73,2.19,high,1628,1542,9498,28493,28493,,
-Chevalier Thrusts,Heavy,2.10,Mask,7.56,Mask All crits,15.12,,TRUE,0.5,7,0.30,2.16,high,1628,1542,3420,12309,24618,,Gradient Attack Tierlist
-Eveque Spear,Heavy,4.67,Mask,14.00,Mask,14.00,Applies Powerless,FALSE,1,6,0.78,2.33,high,1628,1542,7598,22794,22794,,
-Chalier Combo,Balanced,3.90,Mask,11.70,Mask,11.70,,,0.2,7,0.56,1.67,high,1628,1542,6351,19050,19050,,All Characters
-Lampmaster Light 1,ALMIGHTY,2.33,Mask,11.67,Mask,11.67,"adds +4.66/23.33 after each use, dmg cap at 5",TRUE,1,5,0.47,2.33,high,1628,1542,3800,18996,18996,,
-Sapling Absorbtion,Caster,3.50,Mask,10.50,Mask,10.50,Heals 15/30%,FALSE,0.5,6,0.58,1.75,high,1628,1542,5700,17097,17097,,Break Damage Guide
-Moissonneuse Vendange,Balanced,4.27,Mask,10.50,Mask,10.50,Can Break,FALSE,0.5,5,0.85,2.10,high,1628,1542,6947,17097,17097,,
-Sakapate Explosion,Caster,1.75,Mask,5.25,Mask,10.50,"Double hits on Crit, Random Targets",FALSE,0.5,4,0.44,2.63,medium,1628,1542,2850,8547,17094,,
-Glaise Earthquakes,Heavy,10.00,,10.00,,10.00,"Applies Powerful, AOE buff with Mask",TRUE,0.5,4,2.50,2.50,medium,1628,1542,16282,16282,16282,,
-Cultist Blood,Heavy,3.56,Mask Full life,9.99,Mask full life,9.99,"up to 3x Dmg sacrificing health, useless at low hp",TRUE,0.5,3,1.19,3.33,medium,1628,1542,5800,16262,16262,,
-Bruler Bash,Caster,2.80,Mask,9.56,Mask,9.56,Can Break,,0.5,4,0.70,2.39,medium,1628,1542,4560,15565,15565,,
-Echassier Stabs,Agile,3.00,Mask,9.00,Mask,9.00,Applies Mark,FALSE,0.7,4,0.75,2.25,medium,1628,1542,4884,14654,14654,,
-Contorsionniste Blast,Balanced,2.92,Mask,8.75,Mask,8.75,Heals allies 10% per enemy,TRUE,1,6,0.49,1.46,medium,1628,1542,4749,14246,14246,,
-Chapelier Slash,Agile,2.80,Mask,8.40,Mask,8.40,Applies Mark,TRUE,0.4,7,0.40,1.20,high,1628,1542,4560,13677,13677,,
-Abberation Light,Agile,4.38,add 3t Burn 8 dmg,6.46,add 3t Burn 12 Dmg,7.47,"8 Burn, 12 Burn with masks",TRUE,0.7,7,0.63,1.07,high,1628,1542,7124,10511,12161,,
-Braseleur Smash,Balanced,1.95,Mask,5.85,Mask +3T Burn 6,7.41,6 Burn,,0.7,4,0.49,1.85,medium,1628,1542,3175,9525,12065,,
-Benisseur Mortar,Caster,2.40,Mask,7.20,Mask,7.20,Switch to Almighty Mask vs Marked,,0.5,5,0.48,1.44,medium,1628,1542,3909,11724,11724,,
-Jar Lampstorm,Heavy,2.33,Mask,7.00,Mask,7.00,Applies 3t Shell to self,TRUE,0.4,5,0.47,1.40,medium,1628,1542,3800,11396,11396,,
-Stalact Punches,Heavy,2.10,Mask,6.30,Mask,6.30,,FALSE,1.5,4,0.53,1.57,medium,1628,1542,3420,10256,10256,,
-Clair Enfeeble,Balanced,2.04,Mask,6.13,Mask,6.13,Applies Powerless,TRUE,1,5,0.41,1.23,medium,1628,1542,3324,9972,9972,,
-Grosse Tete Whack,Heavy,3.56,Mask,6.00,Mask,6.00,Applies Defenseless,,0.3,6,0.59,1.00,high,1628,1542,5800,9770,9770,,
-Gault Fury,Balanced,2.25,Mask,5.68,Mask,5.68,Applies Mark,,0.4,3,0.75,1.89,low,1628,1542,3664,9245,9245,,
-Chevaliere Ice,Balanced,2.16,Mask,5.40,Mask,5.40,Applies Slow,TRUE,0.5,6,0.36,0.90,high,1628,1542,3516,8793,8793,,
-Luster Slices,Agile,1.80,Mask,5.40,Mask,5.40,Applies Rush,FALSE,0.5,3,0.60,1.80,low,1628,1542,2931,8793,8793,,
-Chevaliere Piercing,Agile,2.16,Mask,5.40,Mask,5.40,Pierce+ 30% dmg-bonus per shield,,0.2,3,0.72,1.80,low,1628,1542,3516,8790,8790,,
-Rocher Hammering,Heavy,1.60,Mask,4.80,Mask,4.80,Can Break,FALSE,0.4,3,0.53,1.60,medium,1628,1542,2604,7816,7816,,
-Lancelier Impale,Agile,1.40,Mask,4.20,Mask,4.20,Applies Slow,FALSE,1,2,0.70,2.10,low,1628,1542,2279,6838,6838,,
-Hexga Crush,Heavy,2.74,,2.74,,2.74,"Applies Defenseless, longer with Mask",,0.7,5,0.55,0.55,medium,1628,1542,4458,4458,4458,,
-Ballet Charm,Caster,2.03,Mask,2.39,Mask,2.39,Applies Powerless,,1,2,1.01,1.19,low,1628,1542,3302,3890,3890,,
-Demineur Thunder,Caster,1.46,,1.46,,1.46,Double Break with Mask Upgrade,,5-10,2,0.73,0.73,low,1628,1542,2374,2374,2374,,
-Basic Attack,,1.00,,1.00,,1.00,,FALSE,,,,,,1628,1542,1628,1628,1628,,
-Ramasseur Bonk,Agile,0.93,Mask,0.93,,0.93,Can break,FALSE,1,2,0.46,0.46,low,1628,1542,1510,1510,1510,,
-Abbest Wind,Agile,0.80,Mask,0.80,,0.80,,,1,2,0.40,0.40,low,1628,1542,1303,1303,1303,,
-Burn 1,,0.09,3 Turns,0.26,,0.00,,FALSE,,,,,,1628,1542,141,423,,,
-Burn 12,,1.03,3 Turns,3.09,,0.00,,FALSE,,,,,,1628,1542,1679,5037,,,
-Burn 8,,0.69,3 Turns,2.08,,0.00,,FALSE,,,,,,1628,1542,1129,3387,,,
-Burn 9,,0.78,3 Turns,2.34,,0.00,,FALSE,,,,,,1628,1542,1270,3810,,,
-Counter ,,5.96,,0.00,,0.00,,FALSE,,,,,,1628,1542,9701,,,,
-Ranged Attack,,0.15,,0.00,,0.00,,FALSE,,,,,,1628,1542,244,,,,
+Skill,Mask,Damage Multi,Condition 1,Dmg Con1,Con Max Dmg,Dmg Max,Notes,AOE,Cost,Game Description,Base Attack,Test AP,Attack Type,Target,Element,Wheel Steps,Base Scaling,Hit Count,Conditional Scaling,Monoco Mode
+Abbest Wind,Agile,1,,,,,"Plays a second turn.
+Agile mask: costs 0 AP",FALSE,2.0,,1628,1542,Skill,Single,Physical,2.0,1.0,1.0,1.0,cost_mask
+Abberation Light,Agile,3,,,,,Applies 4 Burn per hit. Agile Mask: Applies 2 more Burn per hit.,TRUE,7.0,,1628,1542,Skill,AoE,Light,4.0,1.5,2.0,1.0,direct
+Ballet Charm,Caster,0.8,Mask active,2.4,,,Applies Powerless to the target for 3 turns. Caster Mask: Increased damage.,FALSE,2.0,,1628,1542,Skill,Single,Light,3.0,0.8,1.0,3.0,mask
+Benissuer Mortar,Caster,2.4,Mask active,7.2,,,Change to Almighty Mask if target is Marked. Caster Mask: Increased damage.,FALSE,5.0,,1628,1542,Skill,Single,Ice,6.0,0.8,3.0,3.0,mask
+Bouchelier Fortify,Heavy,0,,,,,Applies Shell to 1-3 allies for 3 turns. Heavy Mask: Also applies 1 Shield.,TRUE,3.0,,1628,1542,Skill,Party,-,5.0,,0.0,,utility
+Braseleur Smash,Balanced,1.8,Mask active,5.4,,,Applies 3 Burn. 2 hits. Balanced Mask: Increased damage.,FALSE,4.0,,1628,1542,Skill,Single,Fire,2.0,0.9,2.0,3.0,mask
+Bruler Bash,Caster,2.4,Mask active,7.2,,,Can Break. Caster Mask: Increased damage.,FALSE,4.0,,1628,1542,Skill,Single,Physical,4.0,0.8,3.0,3.0,mask
+Chalier Combo,Balanced,3.6,Mask active,10.8,,,Interrupted if failed. Balanced Mask: Increased damage.,FALSE,7.0,,1628,1542,Skill,Single,Physical,3.0,0.6,6.0,3.0,mask
+Chapelier Slash,Agile,2.4,Mask active,7.2,,,Applies Mark. Agile Mask: Increased damage.,TRUE,7.0,,1628,1542,Skill,AoE,Physical,4.0,0.8,3.0,3.0,mask
+Chevaliere Ice,Balanced,1.8,Mask active,5.4,,,Applies Slow to the targets for 3 turns. Balanced Mask: Increased damage.,TRUE,6.0,,1628,1542,Skill,AoE,Ice,2.0,0.6,3.0,3.0,mask
+Chevaliere Piercing,Agile,1.8,Mask active,5.4,,,Does damage through Shields. Damage increased for each Shield on the target (+0.3 base per shiel). Agile Mask: Increased damage.,FALSE,3.0,,1628,1542,Skill,Single,Physical,3.0,0.3,6.0,3.0,mask
+Chevaliere Thrusts,Heavy,1.8,Mask active,5.4,Mask active + all crits,8.1,Critical Hits deal x1.5 damage on top of the regular crit damage. Heavy Mask: Increased damage. Conditional assumes 100% crit rate.,TRUE,7.0,,1628,1542,Skill,AoE,Physical,3.0,0.6,3.0,4.5,mask_all_crits
+Clair Enfeeble,Balanced,1.75,Mask active,5.25,,,Applies Powerless for 3 turns. Balanced Mask: Increased damage.,TRUE,5.0,,1628,1542,Skill,AoE,Light,3.0,1.75,1.0,3.0,mask
+Contorsionniste Blast,Balanced,2.5,Mask active,7.5,,,Heals all allies by 10% Health for each enemy hit. Balanced Mask: Increased damage.,TRUE,6.0,,1628,1542,Skill,AoE,Physical,2.0,2.5,1.0,3.0,mask
+Creation Void,Caster,6,Mask active,18,,,More damage if the same target is hit multiple times (+0.5 base per hit). Needs testing where the extra damage is added in the equation. Caster Mask: Increased damage.,FALSE,9.0,,1628,1542,Skill,Random,Void,4.0,2.0,3.0,3.0,mask
+Cruler Barrier,Heavy,-,,,,,Applies 1-2 Shields to the target. Heavy Mask: Gives 2 AP to the target.,TRUE,4.0,,1628,1542,Skill,Party,-,4.0,,,,utility
+Cultist Blood,Heavy,0.9,Mask active,2.7,Mask active + 90% HP donated,9.99,"Sacrifices 90% Health to increase damage. Heavy Mask: Increased damage.
+Does more damage based on the amount of health donated (0.03 base per donated % of HP)",TRUE,3.0,,1628,1542,Skill,AoE,Dark,5.0,0.3,3.0,3.0,mask_full_life
+Cultists Slashes,Agile,2.1,Mask active,6.3,Mask active + 1 HP,15.75,"Deals more damage the less Health Monoco has. Agile Mask: Increased damage.
+Up to 2.5 mult",FALSE,3.0,,1628,1542,Skill,Single,Dark,5.0,0.7,3.0,3.0,mask_low_life
+Danseuse Waltz,Balanced,3.9,Mask active,11.7,Mask active + burning target,17.55,Deals more damage against Burning targets (1.5 times). Balanced Mask: Increased damage (3 times),FALSE,8.0,,1628,1542,Skill,Single,Fire,3.0,1.3,3.0,4.5,mask_burning
+Demineur Thunder,Caster,0.1,,,,,Deals extra Break damage (5 times more). Caster Mask: Increased Break damage (10 times more),FALSE,2.0,,1628,1542,Skill,Single,Lightning,5.0,0.1,1.0,1.0,direct
+Duallist Storm,Almighty,6,Mask active,30,,,Can Break. Almighty Mask: Increased damage.,FALSE,,,1628,1542,Skill,Single,Physical,,1.5,4.0,5.0,mask
+Echassier Stabs,Agile,3,Mask active,9,,,Second hit applies Mark to the target. Agile Mask: Increased damage.,FALSE,4.0,,1628,1542,Skill,Single,Physical,4.0,1.5,2.0,3.0,mask
+Eveque Spear,Heavy,4,Mask active,12,,,Applies Powerless for 3 turns. Heavy Mask: Increased damage.,FALSE,6.0,,1628,1542,Skill,Single,Earth,3.0,4.0,1.0,3.0,mask
+Gault Fury,Balanced,1.6,Mask active,4.8,,,Applies Mark. Balanced Mask: Increased damage.,FALSE,3.0,,1628,1542,Skill,Single,Physical,2.0,0.4,4.0,3.0,mask
+Glaise Earthquakes,Heavy,9,,,,,Applies Powerful to self. Heavy Mask: Applies Powerful to all allies.,TRUE,4.0,,1628,1542,Skill,AoE,Earth,6.0,3.0,3.0,1.0,direct
+Grosse Tete Whack,Heavy,3,Mask active,6,,,Applies Defenceless for 3 turns. Heavy Mask: Increased damage.,FALSE,6.0,,1628,1542,Skill,Single,Physical,4.0,0.6,5.0,2.0,mask
+Hexga Crush,Heavy,2.4,,,,,Applies Defenceless to the target for 3 turns. Heavy Mask: Increases Defenceless duration to 5 turns.,FALSE,5.0,,1628,1542,Skill,Single,Earth,6.0,1.2,2.0,1.0,direct
+Jar Lampstorm,Heavy,2,Mask active,6,,,Heavy Mask: Increased damage.,TRUE,5.0,,1628,1542,Skill,AoE,Physical,6.0,0.5,4.0,3.0,mask
+Lancelier Impale,Agile,1.2,Mask active,3.6,,,Slows the target for 3 turns. Agile Mask: Increased damage.,FALSE,2.0,,1628,1542,Skill,Single,Ice,4.0,1.2,1.0,3.0,mask
+Luster Slices,Agile,1.8,Mask active,5.4,,,Applies Rush to self for 3 turns. Agile Mask: Increased damage.,FALSE,3.0,,1628,1542,Skill,Single,Physical,3.0,0.6,3.0,3.0,mask
+Moissonneuse Vendange,Balanced,3,Mask active,9,,,Can Break. Balanced Mask: Increased damage.,FALSE,5.0,,1628,1542,Skill,Single,Physical,2.0,1.0,3.0,3.0,mask
+Obscur Sword,Heavy,3,Mask active,9,Mask active + powerless target,18,Deals more damage against Powerless targets (times 2). Heavy Mask: Increased damage (times 3),FALSE,6.0,,1628,1542,Skill,Single,Dark,3.0,0.6,5.0,6,mask_powerless
+Orphelin Cheers,Caster,-,,,,,Applies Powerful to 1-3 allies. Caster Mask: Also gives 3 AP to targets.,TRUE,3.0,,1628,1542,Skill,Party,-,3.0,,0.0,,utility
+Perelin Heal,Caster,-,,,,,Applies Regen to all allies. Caster Mask: Also Heals 40% Health.,TRUE,3.0,,1628,1542,Skill,Party,-,5.0,,0.0,,utility
+Portier Crash,Heavy,5,Mask active,15,,,Can Break. Heavy Mask: Increased damage.,TRUE,8.0,,1628,1542,Skill,AoE,Physical,5.0,5.0,1.0,3.0,mask
+Potier Energy,Caster,-,,,,,Gives 1-3 AP to all allies. Caster Mask: Gives 1 additional AP.,TRUE,,,1628,1542,Skill,Party,-,,,0.0,,utility
+Ramasseur Bonk,Agile,0.8,,,,,Can Break. Agile Mask: Fills 20% of the target's Break Bar.,FALSE,2.0,,1628,1542,Skill,Single,Dark,4.0,0.8,1.0,1.0,direct
+Rocher Hammering,Heavy,1.6,Mask active,4.8,,,Can Break. Heavy Mask: Increased damage.,FALSE,3.0,,1628,1542,Skill,Single,Physical,3.0,0.4,4.0,3.0,mask
+Sakapate Estoc,Balanced,1.5,Mask active,4.5,,,"Deals more damage if the target is Stunned (unknown, x2?). Balanced Mask: Increased damage.",FALSE,3.0,,1628,1542,Skill,Single,Lightning,3.0,1.5,1.0,3.0,mask
+Sakapate Explosion,Caster,1.5,Mask active,4.5,,,Critical Hits trigger an additional hit. Caster Mask: Increased damage.,FALSE,4.0,,1628,1542,Skill,Random,Lightning,6.0,0.5,3.0,3.0,mask
+Sakapate Fire,Almighty,4.5,Mask active,22.5,,,Apply 3 Burn per hit. Almighty Mask: Increased damage (times 5 instead of the usual 3),TRUE,9.0,,1628,1542,Skill,AoE,Fire,1.0,1.5,3.0,5.0,mask
+Sakapate Slam,Heavy,3,Mask active,9,Mask active + marked target,18,Increased damage to Marked targets. Heavy Mask: Increased damage.,TRUE,7.0,,1628,1542,Skill,AoE,Physical,5.0,3.0,1.0,6,mask_marked
+Sapling Absorbtion,Caster,3,Mask active,9,,,Recovers 5% Health on hit. Caster Mask: Increased damage and double Heal,FALSE,6.0,,1628,1542,Skill,Single,Dark,5.0,1.0,3.0,3.0,mask
+Stalact Punches,Heavy,1.8,Mask active,5.4,,,High Break damage. Heavy Mask: Increased damage.,FALSE,4.0,,1628,1542,Skill,Single,Ice,4.0,0.45,4.0,3.0,mask
+Troubadour Trumpet,Caster,-,,,,,Applies a random buff to 1-3 allies. Caster Mask: Applies a second random buff.,TRUE,3.0,,1628,1542,Skill,Party,-,4.0,,0.0,,utility
+Mighty Strike,,8,,,Stunned target,16,Deals double damage if the target is Stunned. Goes to Almighty Mask.,FALSE,1 GC,,1628,1542,Gradient Attack,Single,Weapon,Almighty,4.0,2.0,2.0,stunned
+Sanctuary,,-,,,,,Gives 2 Shields and applies Regen to all allies for 3 turns.,FALSE,2 GC,,1628,1542,Gradient Attack,,,Level 4 Relationship with Monoco,,,,utility
+Breakpoint,,40,,,,,Fills the target's Break Bar and Breaks it.,FALSE,3 GC,,1628,1542,Gradient Attack,Single,Weapon,Level Max Relationship with Monoco,40.0,1.0,1.0,direct
+Lampmaster Light 0,Almighty,2,Mask active,10,,,Cast state helper for Lampmaster Light with 0 previous cast(s).,TRUE,5.0,,1628,1542,Skill,AoE,Light,1.0,2,1,5,mask
+Lampmaster Light 1,Almighty,6,Mask active,30,,,Cast state helper for Lampmaster Light with 1 previous cast(s).,TRUE,5.0,,1628,1542,Skill,AoE,Light,1.0,6,1,5,mask
+Lampmaster Light 2,Almighty,10,Mask active,50,,,Cast state helper for Lampmaster Light with 2 previous cast(s).,TRUE,5.0,,1628,1542,Skill,AoE,Light,1.0,10,1,5,mask
+Lampmaster Light 3,Almighty,14,Mask active,70,,,Cast state helper for Lampmaster Light with 3 previous cast(s).,TRUE,5.0,,1628,1542,Skill,AoE,Light,1.0,14,1,5,mask
+Lampmaster Light 4,Almighty,18,Mask active,90,,,Cast state helper for Lampmaster Light with 4 previous cast(s).,TRUE,5.0,,1628,1542,Skill,AoE,Light,1.0,18,1,5,mask
+Lampmaster Light 5,Almighty,22,Mask active,110,,,Cast state helper for Lampmaster Light with 5 previous cast(s).,TRUE,5.0,,1628,1542,Skill,AoE,Light,1.0,22,1,5,mask
+Chevaliere Piercing 3 Shields,Agile,7.2,Mask active,21.6,,,Workbook example row with 3 target Shields.,FALSE,3.0,,1628,1542,Skill,Single,Physical,3.0,1.2,6,3,mask
+Basic Attack,,1,,,,,,FALSE,,,1628,1542,Base Attack,Single,Weapon,,1,1,1,direct
+Ranged Attack,,0.15,,,,,,FALSE,,,1628,1542,Free Aim,Single,Weapon,,0.15,1,1,direct
+Counter,,5.96,,,,,,FALSE,,,1628,1542,Counterattack,Single,Physical,,5.96,1,1,direct
+Burn 1,,0.09,3 Turns,,,,,FALSE,,,1628,1542,Status,Single,Fire,,0.09,1,1,direct
+Burn 8,,0.69,3 Turns,,,,,FALSE,,,1628,1542,Status,Single,Fire,,0.69,1,1,direct
+Burn 9,,0.78,3 Turns,,,,,FALSE,,,1628,1542,Status,Single,Fire,,0.78,1,1,direct
+Burn 12,,1.03,3 Turns,,,,,FALSE,,,1628,1542,Status,Single,Fire,,1.03,1,1,direct

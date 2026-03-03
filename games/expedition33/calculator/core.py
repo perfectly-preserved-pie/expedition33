@@ -408,6 +408,7 @@ def build_sheet_rows(row: CalculatorRow) -> list[SheetScenario]:
     """
 
     entries: list[SheetScenario] = []
+    lune_mode = text_from_row(row, "Lune Mode")
 
     def add_entry(label: str, value: float | None) -> None:
         """Append a unique summary entry when the value is usable.
@@ -426,7 +427,22 @@ def build_sheet_rows(row: CalculatorRow) -> list[SheetScenario]:
             return
         entries.append({"label": label, "value": value})
 
+    if lune_mode == "duration_consume":
+        per_turn = number_from_row(row, "Damage Multi")
+        base_turns = clamp_int(number_from_row(row, "Base Turns"), 1, 10)
+        max_turns = clamp_int(number_from_row(row, "Max Turns"), base_turns, 10)
+        add_entry("1 turn", per_turn)
+        if per_turn is not None and base_turns > 1:
+            add_entry(f"{base_turns} turns", round(per_turn * base_turns, 2))
+        if per_turn is not None and max_turns > base_turns:
+            add_entry(f"Consume | {max_turns} turns", round(per_turn * max_turns, 2))
+        return entries
+
     add_entry("Base", number_from_row(row, "Damage Multi"))
+
+    all_crit_value = number_from_row(row, "All Crit Dmg")
+    if all_crit_value is not None and all_crit_value != number_from_row(row, "Damage Multi"):
+        add_entry("All hits crit", all_crit_value)
 
     conditional_value = number_from_row(row, "Dmg Con1", "ConDmg")
     conditional_label = text_from_row(row, "Condition 1", "Condition")
@@ -467,17 +483,66 @@ def calculate_current_cost(character: str, row: CalculatorRow, state: Calculator
     numeric_cost = parse_number(row.get("Cost"))
     skill = clean_text(row.get("Skill"))
 
+    def split_pipe_values(value: Any) -> list[str]:
+        text = clean_text(value)
+        if not text:
+            return []
+        return [part.strip() for part in text.split("|") if part.strip() and part.strip() != "-"]
+
+    def lune_can_consume(requirements_text: Any) -> bool:
+        requirements: dict[str, int] = {}
+        for stain in split_pipe_values(requirements_text):
+            normalized = stain.lower()
+            if normalized == "all":
+                continue
+            requirements[normalized] = requirements.get(normalized, 0) + 1
+
+        if not requirements:
+            return False
+
+        inventory = {
+            "earth": clamp_int(state.get("earth_stains"), 0, 4),
+            "fire": clamp_int(state.get("fire_stains"), 0, 4),
+            "ice": clamp_int(state.get("ice_stains"), 0, 4),
+            "lightning": clamp_int(state.get("lightning_stains"), 0, 4),
+            "light": clamp_int(state.get("light_stains"), 0, 4),
+        }
+        light_required = requirements.pop("light", 0)
+        available_light = inventory["light"]
+        if available_light < light_required:
+            return False
+
+        jokers = available_light - light_required
+        for stain, needed in requirements.items():
+            available = inventory.get(stain, 0)
+            if available >= needed:
+                continue
+            deficit = needed - available
+            if jokers < deficit:
+                return False
+            jokers -= deficit
+
+        return True
+
     if numeric_cost is None:
         return raw_cost or "-"
 
+    if character == "lune" and skill in {"Healing Light", "Rebirth"} and lune_can_consume(row.get("Consume Stains")):
+        return "0"
+
     if character == "maelle" and state.get("stance") == "Virtuoso" and skill in {"Momentum Strike", "Percee"}:
         return format_value(max(numeric_cost - 3, 0))
+
+    if character == "monoco" and text_from_row(row, "Monoco Mode") == "cost_mask" and state.get("mask_active"):
+        return "0"
 
     if character == "verso":
         rank = clean_text(state.get("rank")) or "D"
         if skill in {"Follow Up", "Ascending Assault"} and rank == "S":
             return "2"
         if skill == "Perfect Break" and rank_at_least(rank, "B"):
+            return "5"
+        if skill == "Phantom Stars" and rank == "S":
             return "5"
 
     return format_value(numeric_cost)

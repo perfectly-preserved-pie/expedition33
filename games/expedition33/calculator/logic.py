@@ -29,6 +29,78 @@ SCIEL_FORETELL_RATES = {
     "Twilight Slash": 0.25,
 }
 
+LUNE_STAIN_KEYS = (
+    "earth_stains",
+    "fire_stains",
+    "ice_stains",
+    "lightning_stains",
+    "light_stains",
+)
+
+
+def split_pipe_values(value: object) -> list[str]:
+    """Split a pipe-delimited sheet field into normalized entries."""
+
+    text = clean_text(value)
+    if not text:
+        return []
+    return [part.strip() for part in text.split("|") if part.strip() and part.strip() != "-"]
+
+
+def lune_stain_inventory(state: CalculatorState) -> dict[str, int]:
+    """Read Lune's current stain counts from calculator state."""
+
+    return {
+        "earth": clamp_int(state.get("earth_stains"), 0, 4),
+        "fire": clamp_int(state.get("fire_stains"), 0, 4),
+        "ice": clamp_int(state.get("ice_stains"), 0, 4),
+        "lightning": clamp_int(state.get("lightning_stains"), 0, 4),
+        "light": clamp_int(state.get("light_stains"), 0, 4),
+    }
+
+
+def format_lune_stains(value: object) -> str:
+    """Format a stain requirement string for UI text."""
+
+    stains = split_pipe_values(value)
+    if not stains:
+        return "stains"
+    if len(stains) == 1 and stains[0].lower() == "all":
+        return "all stains"
+    return " + ".join(stains)
+
+
+def can_satisfy_lune_stains(requirements_text: object, state: CalculatorState) -> bool:
+    """Check whether Lune's current stains satisfy a requirement list."""
+
+    requirements: dict[str, int] = {}
+    for stain in split_pipe_values(requirements_text):
+        normalized = stain.lower()
+        if normalized == "all":
+            continue
+        requirements[normalized] = requirements.get(normalized, 0) + 1
+
+    if not requirements:
+        return False
+
+    inventory = lune_stain_inventory(state)
+    light_required = requirements.pop("light", 0)
+    available_light = inventory["light"]
+    if available_light < light_required:
+        return False
+
+    jokers = available_light - light_required
+    for stain, needed in requirements.items():
+        available = inventory.get(stain, 0)
+        if available >= needed:
+            continue
+        deficit = needed - available
+        if jokers < deficit:
+            return False
+        jokers -= deficit
+
+    return True
+
 
 def calculate_gustave(row: CalculatorRow, state: CalculatorState) -> CalculationResult:
     """Calculate Gustave's effective skill multiplier.
@@ -45,10 +117,9 @@ def calculate_gustave(row: CalculatorRow, state: CalculatorState) -> Calculation
     skill = clean_text(row.get("Skill"))
     if skill.startswith("Overcharge"):
         charges = clamp_int(state.get("charges"), 0, 10)
-        multiplier = 2.1 * (1 + (0.2 * charges))
-        if charges >= 10:
-            multiplier *= 1.25
-        return result(round(multiplier, 2), f"{charges} Charges", "Derived from Overcharge note")
+        base_multiplier = number_from_row(row, "Damage Multi") or 0
+        multiplier = base_multiplier * (1 + (0.2 * charges))
+        return result(round(multiplier, 2), f"{charges} Charges", "Derived from note text")
 
     return base_result(row)
 
@@ -66,18 +137,97 @@ def calculate_lune(row: CalculatorRow, state: CalculatorState) -> CalculationRes
     """
 
     skill = clean_text(row.get("Skill"))
+    mode = text_from_row(row, "Lune Mode")
     base_multiplier = number_from_row(row, "Damage Multi")
     conditional = number_from_row(row, "Dmg Con1")
     maximum = number_from_row(row, "Dmg Max")
+    all_crit_multiplier = number_from_row(row, "All Crit Dmg")
     condition = text_from_row(row, "Condition 1").lower()
     max_condition = text_from_row(row, "Con Max Dmg").lower()
     stains = clamp_int(state.get("stains"), 0, 4)
     turns = clamp_int(state.get("turns"), 1, 5)
     all_crits = bool(state.get("all_crits"))
+    consume_ready = can_satisfy_lune_stains(text_from_row(row, "Consume Stains"), state)
+    required_ready = can_satisfy_lune_stains(text_from_row(row, "Required Stains"), state)
 
-    if skill.startswith("Burn "):
+    if mode == "utility":
+        return result(None, "No direct damage", "Sheet")
+
+    if mode == "utility_extra_turn":
+        warning = "Additional turn from consume is not folded into this damage number." if consume_ready else None
+        return result(base_multiplier, "Direct hit only", "Damage Multi", warning)
+
+    if mode == "burn" or skill.startswith("Burn "):
         ticks = clamp_int(state.get("turns"), 1, 3)
         return result(round((base_multiplier or 0) * ticks, 2), f"{ticks} Burn tick(s)", "Derived from burn rows")
+
+    if mode == "requires_stains":
+        if not required_ready:
+            return result(
+                None,
+                "Missing required stains",
+                "Required Stains",
+                f"Requires {format_lune_stains(text_from_row(row, 'Required Stains'))}. Light stains can substitute missing elemental stains.",
+            )
+        return result(base_multiplier, "Required stains met", "Damage Multi")
+
+    if mode == "consume":
+        if consume_ready and conditional is not None:
+            return result(conditional, text_from_row(row, "Condition 1") or "Consume ready", "Dmg Con1")
+        return result(base_multiplier, "Base hit sequence", "Damage Multi")
+
+    if mode == "crit":
+        if all_crits and all_crit_multiplier is not None:
+            return result(all_crit_multiplier, "All hits crit", "All Crit Dmg")
+        return result(base_multiplier, "Base hit sequence", "Damage Multi")
+
+    if mode == "consume_crit":
+        if all_crits and consume_ready and maximum is not None:
+            return result(maximum, text_from_row(row, "Con Max Dmg") or "Consume + all crits", "Dmg Max")
+        if all_crits and all_crit_multiplier is not None:
+            return result(all_crit_multiplier, "All hits crit", "All Crit Dmg")
+        if consume_ready and conditional is not None:
+            return result(conditional, text_from_row(row, "Condition 1") or "Consume ready", "Dmg Con1")
+        return result(base_multiplier, "Base hit sequence", "Damage Multi")
+
+    if mode == "duration_consume":
+        base_turns = clamp_int(number_from_row(row, "Base Turns"), 1, 10)
+        max_turns = clamp_int(number_from_row(row, "Max Turns"), base_turns, 10)
+        allowed_turns = max_turns if consume_ready else base_turns
+        applied_turns = min(turns, allowed_turns)
+        total = round((base_multiplier or 0) * applied_turns, 2)
+        warning = None
+        if turns > allowed_turns:
+            warning = f"Capped at {allowed_turns} turn(s) for the selected stain state."
+        scenario = f"{applied_turns} turn(s)"
+        if consume_ready:
+            scenario = f"{scenario} | consume ready"
+        return result(total, scenario, "Damage Multi x turns", warning)
+
+    if mode == "storm_caller":
+        per_proc = conditional if consume_ready and conditional is not None else base_multiplier
+        total = round((per_proc or 0) * turns, 2)
+        scenario = f"{turns} end-turn proc(s)"
+        if consume_ready:
+            scenario = f"{scenario} | consume ready"
+        return result(
+            total,
+            scenario,
+            "Derived from per-proc scaling",
+            "Reactive 0.2 follow-up hits from other damage events are not modeled.",
+        )
+
+    if mode == "consume_all":
+        consumed_stains = stains
+        multiplier = round((base_multiplier or 0) * (1 + consumed_stains), 2)
+        scenario = "Base hit sequence" if consumed_stains == 0 else f"Consume {consumed_stains} stain(s)"
+        return result(multiplier, scenario, "Derived from consume-all scaling")
+
+    if mode == "fire_rage":
+        warning = "Per-turn stacking remains unclear in the sheet, so only the immediate hit is modeled."
+        if consume_ready and conditional is not None:
+            return result(conditional, text_from_row(row, "Condition 1") or "Consume ready", "Dmg Con1", warning)
+        return result(base_multiplier, "Immediate hit only", "Damage Multi", warning)
 
     if condition == "turn start dmg" and stains > 0 and conditional is not None:
         total = round((base_multiplier or 0) + (conditional * turns), 2)
@@ -134,6 +284,7 @@ def calculate_maelle(row: CalculatorRow, state: CalculatorState) -> CalculationR
     """
 
     skill = clean_text(row.get("Skill"))
+    mode = text_from_row(row, "Maelle Mode")
     base_multiplier = number_from_row(row, "Damage Multi")
     maximum = number_from_row(row, "DmMax")
     stance = clean_text(state.get("stance")) or "Stanceless"
@@ -170,28 +321,59 @@ def calculate_maelle(row: CalculatorRow, state: CalculatorState) -> CalculationR
             skill_result.get("warning"),
         )
 
-    if skill == "Burning Canvas":
-        multiplier = round((base_multiplier or 0) * (1 + (0.1 * burn_stacks)), 2)
-        return with_stance(result(multiplier, f"{burn_stacks} Burn stack(s)", "Derived from note text"))
+    if mode == "burning_canvas":
+        base_scaling = number_from_row(row, "Base Scaling") or base_multiplier or 0
+        hit_count = clamp_int(number_from_row(row, "Hit Count"), 1, 20)
+        multiplier = sum(
+            base_scaling * (1 + (0.1 * (burn_stacks + hit_index)))
+            for hit_index in range(hit_count)
+        )
+        return with_stance(
+            result(
+                round(multiplier, 2),
+                f"{burn_stacks} starting Burn stack(s)",
+                "Derived from note text",
+            )
+        )
 
-    if skill == "Combustion":
+    if mode == "combustion":
         multiplier = round((base_multiplier or 0) * (1 + (0.4 * min(burn_stacks, 10))), 2)
         return with_stance(result(multiplier, f"Consume {min(burn_stacks, 10)} Burn", "Derived from note text"))
 
-    if skill == "Revenge":
+    if mode == "revenge":
         multiplier = round((base_multiplier or 0) * (1 + (1.5 * hits_taken)), 2)
         return with_stance(result(multiplier, f"{hits_taken} hit(s) taken last round", "Derived from note text"))
 
     if skill.startswith("Burn "):
         return result(round((base_multiplier or 0) * turns, 2), f"{turns} Burn tick(s)", "Derived from burn rows")
 
-    if skill in {"G-Homage", "Momentum Strike", "Percee"} and marked and maximum is not None:
+    if mode == "marked" and marked and maximum is not None:
         return with_stance(result(maximum, "Marked target", "DmMax"))
 
-    if skill == "Sword Ballet" and all_crits and maximum is not None:
+    if mode == "all_crits" and all_crits and maximum is not None:
         return with_stance(result(maximum, "All crits", "DmMax"))
 
     return with_stance(base_result(row))
+
+
+def monoco_mask_factor(row: CalculatorRow) -> float | None:
+    """Infer Monoco's mask damage factor from sheet breakpoints."""
+
+    base_multiplier = number_from_row(row, "Damage Multi")
+    masked_multiplier = number_from_row(row, "Dmg Con1")
+    if base_multiplier in (None, 0) or masked_multiplier is None:
+        return None
+    return masked_multiplier / base_multiplier
+
+
+def monoco_secondary_only_multiplier(row: CalculatorRow) -> float | None:
+    """Infer a Monoco secondary-condition multiplier without mask bonus."""
+
+    maximum = number_from_row(row, "Dmg Max")
+    mask_factor = monoco_mask_factor(row)
+    if maximum is None or mask_factor in (None, 0):
+        return None
+    return round(maximum / mask_factor, 2)
 
 
 def uses_mask_condition(row: CalculatorRow) -> bool:
@@ -302,6 +484,7 @@ def calculate_monoco(row: CalculatorRow, state: CalculatorState) -> CalculationR
     """
 
     skill = clean_text(row.get("Skill"))
+    mode = text_from_row(row, "Monoco Mode")
     base_multiplier = number_from_row(row, "Damage Multi")
     conditional = number_from_row(row, "Dmg Con1")
     maximum = number_from_row(row, "Dmg Max")
@@ -330,8 +513,55 @@ def calculate_monoco(row: CalculatorRow, state: CalculatorState) -> CalculationR
             return skill_result
         return apply_monoco_mask_bonus(row, skill_result)
 
+    def mask_mode_result(active_label: str, extra_active: bool) -> CalculationResult:
+        secondary_only = monoco_secondary_only_multiplier(row)
+        if mask_active and extra_active and maximum is not None:
+            return result(maximum, f"Mask active + {active_label}", "Dmg Max")
+        if extra_active and secondary_only is not None:
+            return result(secondary_only, active_label, "Derived from Dmg Max / mask factor")
+        if mask_active and conditional is not None:
+            return result(conditional, "Mask active", "Dmg Con1")
+        return base_result(row)
+
     if skill.startswith("Burn "):
         return result(round((base_multiplier or 0) * turns, 2), f"{turns} Burn tick(s)", "Derived from burn rows")
+
+    if mode == "utility":
+        return result(None, "No direct damage", "Sheet")
+
+    if mode == "cost_mask":
+        return result(base_multiplier, "Direct hit only", "Damage Multi")
+
+    if mode == "stunned":
+        if stunned and maximum is not None:
+            return result(maximum, "Stunned target", "Dmg Max")
+        return base_result(row)
+
+    if mode == "mask":
+        if mask_active and conditional is not None:
+            return result(conditional, "Mask active", "Dmg Con1")
+        return base_result(row)
+
+    if mode == "mask_stunned":
+        return mask_mode_result("stunned target", stunned)
+
+    if mode == "mask_marked":
+        return mask_mode_result("marked target", marked)
+
+    if mode == "mask_powerless":
+        return mask_mode_result("powerless target", powerless)
+
+    if mode == "mask_burning":
+        return mask_mode_result("burning target", burning)
+
+    if mode == "mask_low_life":
+        return mask_mode_result("low life", low_life)
+
+    if mode == "mask_full_life":
+        return mask_mode_result("full life", full_life)
+
+    if mode == "mask_all_crits":
+        return mask_mode_result("all crits", all_crits)
 
     if skill == "Mighty Strike" and stunned and maximum is not None:
         return result(maximum, "Stunned target", "Dmg Max")
@@ -553,6 +783,7 @@ def calculate_verso(
     """
 
     skill = clean_text(row.get("Skill"))
+    mode = text_from_row(row, "Verso Mode")
     base_multiplier = number_from_row(row, "Damage Multi")
     conditional = number_from_row(row, "ConDmg")
     maximum = number_from_row(row, "SRankMAX")
@@ -561,7 +792,107 @@ def calculate_verso(
     speed_bonus = bool(state.get("speed_bonus"))
     shots = clamp_int(state.get("shots"), 0, 10)
     uses = clamp_int(state.get("uses"), 1, 6)
+    missing_health = clamp_int(state.get("missing_health"), 0, 99)
     required_rank = parse_rank_requirement(text_from_row(row, "Condition"))
+
+    if mode == "utility":
+        return result(None, "No direct damage", "Sheet")
+
+    if mode == "direct":
+        return apply_verso_rank_bonus(rank, base_result(row), not disable_rank_bonus)
+
+    if mode == "rank_damage":
+        if not disable_rank_bonus and rank_at_least(rank, required_rank) and conditional is not None:
+            return apply_verso_rank_bonus(
+                rank,
+                result(conditional, f"{required_rank} Rank", "ConDmg"),
+                not disable_rank_bonus,
+            )
+        return apply_verso_rank_bonus(rank, base_result(row), not disable_rank_bonus)
+
+    if mode == "rank_cost":
+        return apply_verso_rank_bonus(rank, base_result(row), not disable_rank_bonus)
+
+    if mode == "end_bringer":
+        if stunned and conditional is not None:
+            return apply_verso_rank_bonus(
+                rank,
+                result(conditional, "Stunned target", "ConDmg"),
+                not disable_rank_bonus,
+            )
+        return apply_verso_rank_bonus(rank, base_result(row), not disable_rank_bonus)
+
+    if mode == "follow_up":
+        multiplier = round((base_multiplier or 0) * (1 + (0.5 * shots)), 2)
+        scenario = "Base value" if shots == 0 else f"{shots} ranged shot(s)"
+        return apply_verso_rank_bonus(
+            rank,
+            result(multiplier, scenario, "Derived from note text"),
+            not disable_rank_bonus,
+        )
+
+    if mode == "ascending_assault":
+        bonus_uses = max(uses - 1, 0)
+        multiplier = round((base_multiplier or 0) * (1 + (0.3 * min(bonus_uses, 5))), 2)
+        scenario = "Base value" if uses <= 1 else f"Use {uses}"
+        return apply_verso_rank_bonus(
+            rank,
+            result(multiplier, scenario, "Derived from note text"),
+            not disable_rank_bonus,
+        )
+
+    if mode == "speed_burst":
+        rank_ready = not disable_rank_bonus and rank_at_least(rank, required_rank)
+        if speed_bonus and rank_ready and maximum is not None:
+            return result(maximum, f"{required_rank} Rank + max speed bonus", "SRankMAX")
+        if speed_bonus:
+            return apply_verso_rank_bonus(
+                rank,
+                result(round((base_multiplier or 0) * 2, 2), "Max speed bonus", "Derived from note text"),
+                not disable_rank_bonus,
+            )
+        if rank_ready and conditional is not None:
+            return apply_verso_rank_bonus(
+                rank,
+                result(conditional, f"{required_rank} Rank", "ConDmg"),
+                not disable_rank_bonus,
+            )
+        return apply_verso_rank_bonus(rank, base_result(row), not disable_rank_bonus)
+
+    if mode == "steeled_strike":
+        if not disable_rank_bonus and rank_at_least(rank, required_rank) and conditional is not None:
+            return apply_verso_rank_bonus(
+                rank,
+                result(
+                    conditional,
+                    "S Rank after full charge",
+                    "ConDmg",
+                    "This attack still assumes Verso completed the charge without taking damage.",
+                ),
+                not disable_rank_bonus,
+            )
+        return apply_verso_rank_bonus(
+            rank,
+            result(
+                base_multiplier,
+                "Charge completed",
+                "Damage Multi",
+                "This attack still assumes Verso completed the charge without taking damage.",
+            ),
+            not disable_rank_bonus,
+        )
+
+    if mode == "berserk":
+        multiplier = base_multiplier or 0
+        scenario_parts = [f"{missing_health}% missing HP"]
+        if not disable_rank_bonus and rank_at_least(rank, required_rank):
+            multiplier *= 1 + (0.15 * missing_health)
+            scenario_parts.append(f"{required_rank} Rank")
+        return apply_verso_rank_bonus(
+            rank,
+            result(round(multiplier, 2), " | ".join(scenario_parts), "Derived from note text"),
+            not disable_rank_bonus,
+        )
 
     if skill == "End Bringer":
         if stunned and rank == "S" and maximum is not None:
@@ -658,6 +989,10 @@ def resolve_picto_attack_type(row: CalculatorRow, override: str | None) -> str:
 
     if override and override != "Auto":
         return override
+
+    explicit_attack_type = clean_text(row.get("Attack Type"))
+    if explicit_attack_type:
+        return explicit_attack_type
 
     skill = clean_text(row.get("Skill")).lower()
     if skill == "basic attack":
@@ -757,34 +1092,50 @@ def build_skill_control_styles(character: str, row: CalculatorRow) -> ControlSty
         return styles
 
     if character == "lune":
-        set_visibility("lune_stains", "stain" in condition or "stain" in max_condition or skill in {"Storm Caller"})
-        set_visibility(
-            "lune_turns",
-            skill.startswith("Burn ")
-            or condition == "turn start dmg"
-            or skill in {"Fire Rage", "Fire Rage Stained", "Storm Caller"},
-        )
-        set_visibility("lune_all_crits", "crit" in max_condition)
+        mode = text_from_row(row, "Lune Mode")
+        uses_exact_stains = mode in {"consume", "consume_crit", "duration_consume", "fire_rage", "storm_caller", "requires_stains"}
+
+        set_visibility("lune_stains", mode == "consume_all")
+        for stain_key in LUNE_STAIN_KEYS:
+            set_visibility(f"lune_{stain_key}", uses_exact_stains)
+        set_visibility("lune_turns", mode in {"duration_consume", "storm_caller", "burn"} or skill.startswith("Burn "))
+        set_visibility("lune_all_crits", mode in {"crit", "consume_crit"})
         return styles
 
     if character == "maelle":
-        set_visibility("maelle_stance", not skill.startswith("Burn "))
-        set_visibility("maelle_burn_stacks", skill in {"Burning Canvas", "Combustion"})
-        set_visibility("maelle_hits_taken", skill == "Revenge")
-        set_visibility("maelle_marked", skill in {"G-Homage", "Momentum Strike", "Percee"})
-        set_visibility("maelle_all_crits", skill == "Sword Ballet")
+        mode = text_from_row(row, "Maelle Mode")
+        set_visibility("maelle_stance", not skill.startswith("Burn ") and number_from_row(row, "Damage Multi") is not None)
+        set_visibility("maelle_burn_stacks", mode in {"burning_canvas", "combustion"})
+        set_visibility("maelle_hits_taken", mode == "revenge")
+        set_visibility("maelle_marked", mode == "marked")
+        set_visibility("maelle_all_crits", mode == "all_crits")
         return styles
 
     if character == "monoco":
-        set_visibility("monoco_turns", skill.startswith("Burn ") or skill in {"Sakapate Fire", "Abberation Light", "Braseleur Smash"})
-        set_visibility("monoco_mask", uses_mask_condition(row) or can_apply_generic_monoco_mask_bonus(row))
-        set_visibility("monoco_stunned", skill in {"Mighty Strike", "Sakapate Estoc"})
-        set_visibility("monoco_marked", skill == "Sakapate Slam")
-        set_visibility("monoco_powerless", skill == "Obscur Sword")
-        set_visibility("monoco_burning", skill == "Danseuse Waltz")
-        set_visibility("monoco_low_life", skill == "Cultist Slashes")
-        set_visibility("monoco_full_life", skill == "Cultist Blood")
-        set_visibility("monoco_all_crits", skill in {"Chevalier Thrusts", "Sakapate Explosion"})
+        mode = text_from_row(row, "Monoco Mode")
+        set_visibility("monoco_turns", skill.startswith("Burn "))
+        set_visibility(
+            "monoco_mask",
+            mode in {
+                "cost_mask",
+                "mask",
+                "mask_stunned",
+                "mask_marked",
+                "mask_powerless",
+                "mask_burning",
+                "mask_low_life",
+                "mask_full_life",
+                "mask_all_crits",
+            }
+            or (not mode and (uses_mask_condition(row) or can_apply_generic_monoco_mask_bonus(row))),
+        )
+        set_visibility("monoco_stunned", mode in {"stunned", "mask_stunned"} or skill == "Mighty Strike")
+        set_visibility("monoco_marked", mode == "mask_marked")
+        set_visibility("monoco_powerless", mode == "mask_powerless")
+        set_visibility("monoco_burning", mode == "mask_burning")
+        set_visibility("monoco_low_life", mode == "mask_low_life")
+        set_visibility("monoco_full_life", mode == "mask_full_life")
+        set_visibility("monoco_all_crits", mode == "mask_all_crits")
         return styles
 
     if character == "sciel":
@@ -794,19 +1145,21 @@ def build_skill_control_styles(character: str, row: CalculatorRow) -> ControlSty
         return styles
 
     if character == "verso":
-        set_visibility(
-            "verso_rank",
-            skill not in {"Ranged Attack", "Basic Attack", "Counter"}
+        mode = text_from_row(row, "Verso Mode")
+        set_visibility("verso_rank", mode in {"rank_damage", "rank_cost", "follow_up", "ascending_assault", "speed_burst", "steeled_strike", "berserk"} or (
+            not mode
+            and skill not in {"Ranged Attack", "Basic Attack", "Counter"}
             and (
                 parse_rank_requirement(text_from_row(row, "Condition")) is not None
                 or number_from_row(row, "SRankMAX") is not None
                 or skill in {"Follow Up", "Ascending Assault", "Speed Burst", "End Bringer", "Steeled Strike"}
-            ),
-        )
-        set_visibility("verso_shots", skill == "Follow Up")
-        set_visibility("verso_uses", skill in {"Steeled Strike", "Ascending Assault"})
-        set_visibility("verso_stunned", skill == "End Bringer")
-        set_visibility("verso_speed_bonus", skill == "Speed Burst")
+            )
+        ))
+        set_visibility("verso_shots", mode == "follow_up" or (not mode and skill == "Follow Up"))
+        set_visibility("verso_uses", mode == "ascending_assault" or (not mode and skill in {"Steeled Strike", "Ascending Assault"}))
+        set_visibility("verso_stunned", mode == "end_bringer" or skill == "End Bringer")
+        set_visibility("verso_speed_bonus", mode == "speed_burst" or skill == "Speed Burst")
+        set_visibility("verso_missing_health", mode == "berserk")
         return styles
 
     return styles

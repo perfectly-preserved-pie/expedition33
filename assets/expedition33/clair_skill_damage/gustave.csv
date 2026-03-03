@@ -1,15 +1,11 @@
-Skill,Damage Multi,Notes,Break Multi,Charges,AOE,Cost,BaseDmg/AP,Game Description,,
-Overcharge 0 Charges,2.10," + 20% per charge, additional x1.25 at 10 charges",1,-10,,4,0.53,high,,
-Overcharge 10 Charges,7.88,,1,-10,FALSE,4,1.97,high,,
-Lumiere Assault,1.80,"5 Hits, +1 Charges on Crits",0.3,5-10,FALSE,3,0.60,low,,
-Marking Shot,1.20,Applies Mark,1,1,,2,0.60,low,,
-From Fire,2.00,Heals 20% vs burning.,0.5,3,FALSE,4,0.50,medium,,
-Strike Storm,5.88,6 Hits; +2 Charges on Crits,0.3,6-10,FALSE,7,0.84,Very High,,
-Shatter,2.45,1 AOE Hit. Can Break. Adds 10 Charges on Break,1,1-10,TRUE,5,0.49,High,,
-Ranged Attack,0.15,,,,FALSE,,,,,
-Basic Attack,1.00,,,,FALSE,,,,,
-,,,,,,,,,,Skill Tierlist
-,,,,,,,,,,
-,,,,,,,,,,Break Damage Guide
-,,,,,,,,,,
-,,,,,,,,,,All Characters
+Skill,Damage Multi,Notes,AOE,Cost,Game Description,Base Attack,Test AP,Attack Type,Target,Element,Skill Points Cost,Base Scaling,Hit Count,Conditional Scaling
+From Fire,1.875,Heals self by 20% if the target Burns,FALSE,4.0,medium,,,Skill,Single,Weapon,2.0,0.625,3,1
+Lumiere Assault,1.25,Critical hits generate another Charge,FALSE,3.0,low,,,Skill,Single,Weapon,3.0,0.25,5,1
+Marking Shot,1,Applies Mark,FALSE,2.0,low,,,Skill,Single,Lightning,1.0,1,1,1
+Overcharge 0 Charges,1.5,Uses the Charges to add (1+0.2*charges) damage. Can Break,FALSE,4.0,high,,,Skill,Single,Lightning,4.0,1,1.5,3
+Powerful,,Applies Powerful for 3 turns. Gives 0-2 charges,TRUE,3.0,,,,Skill,Party,,1.0,,,
+Recovery,,Recovers 50% Health and dispells status effects. Gives 0-2 charges,FALSE,3.0,,,,Skill,Self,,2.0,,,
+Shatter,1.75,"Can Break. If it breaks, overcharge is fully Charged",FALSE,5.0,High,,,Skill,Single,Lightning,6.0,1.75,1,1
+Strike Storm,4.9,Last hit is double damage (counted as +1 hit). Critical hits general 2 additional Charges,FALSE,7.0,Very High,,,Skill,Single,Weapon,10.0,0.7,7,1
+Ranged Attack,0.15,,FALSE,,,,,Free Aim,Single,,,,,
+Basic Attack,1.00,,FALSE,,,,,Base Attack,Single,,,,,
