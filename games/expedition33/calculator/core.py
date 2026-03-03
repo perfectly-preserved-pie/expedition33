@@ -40,7 +40,7 @@ class CalculatorPayload(TypedDict):
     skills: dict[str, CalculatorRow]
 
 
-CSV_DIR = Path(__file__).resolve().parents[2] / "assets" / "expedition33" / "clair_skill_damage"
+CSV_DIR = Path(__file__).resolve().parents[3] / "assets" / "expedition33" / "clair_skill_damage"
 
 CHARACTER_META = {
     "gustave": {"label": "Gustave"},
