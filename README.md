@@ -1,6 +1,8 @@
 # Ludex
 Latin "ludus" (game) + dex (index)
 
+[![Build and Publish](https://github.com/perfectly-preserved-pie/ludex/actions/workflows/build_and_push.yml/badge.svg)](https://github.com/perfectly-preserved-pie/ludex/actions/workflows/build_and_push.yml)
+
 I made a Dash AG Grid enemy database for Xenosaga a few years ago and found it really fun to build and actually super useful, so I decided to expand that concept into a more general project that can host tools for multiple games.
 
 ## What Ludex Includes
