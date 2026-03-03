@@ -986,7 +986,7 @@ layout = dbc.Container(
                     ),
                     html.Span(
                         [
-                            "Pictos and weapon data courtesy of ",
+                            "Pictos, weapon, and damage scaling data courtesy of ",
                             html.A(
                                 "ErikLeb and Blueye95",
                                 href="https://docs.google.com/spreadsheets/d/1-d2ybbBy94JiVF6Mo_0-jmICTueH4oyN2q9_Va2gXbw/",
