@@ -1001,15 +1001,15 @@ layout = dbc.Container(
             color="info",
             className="mt-2",
         ),
-        dbc.Alert(
-            html.Span(
-                [
-                    "Spreadsheet damage values are used as reference points. When the notes clearly state the formula, the calculator fills in the values between them.",
-                ]
-            ),
-            color="info",
-            className="mt-2",
-        ),
+        #dbc.Alert(
+        #    html.Span(
+        #        [
+        #            "Spreadsheet damage values are used as reference points. When the notes clearly state the formula, the calculator fills in the values between them.",
+        #        ]
+        #    ),
+        #    color="info",
+        #    className="mt-2",
+       # ),
         dcc.Markdown(
             "Choose a character, pick a skill, then adjust the relevant combat state. "
             "The result card shows the applied breakpoint or derived formula and estimates damage from your current Attack Power, weapon passives, and Pictos."
