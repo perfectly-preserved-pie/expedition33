@@ -5,7 +5,7 @@ from games.expedition33.calculator.layout import layout
 
 register_page(
     __name__,
-    path="/calculator",
+    path="/expedition33/calculator",
     name="Skill Damage Calculator",
     title="Expedition 33 Skill Damage Calculator",
     layout=layout,

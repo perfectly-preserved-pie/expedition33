@@ -75,7 +75,7 @@ Then open `http://localhost:8080`.
 
 1. Create a module under `games/<game_name>/`.
 2. Define a `layout`.
-3. Register the page with Dash using `register_page(...)`.
+3. Register the page with Dash using `register_page(...)` and a game-scoped path such as `/<game_name>/<page_name>`.
 4. Restart the app.
 
 Once registered, the home tree in `app.py` will automatically group the page under that game.
@@ -83,4 +83,5 @@ Once registered, the home tree in `app.py` will automatically group the page und
 ## Notes
 
 - The top-level app is intentionally generic so multiple games can live in one project.
+- Game URLs are namespaced by game, for example `/expedition33/skilldamage`.
 - Game-specific documentation lives in [Expedition 33 calculator README](games/expedition33/calculator/README.md) and [Xenosaga README](games/xenosaga/readme.md).

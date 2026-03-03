@@ -201,4 +201,10 @@ def open_and_populate_modal(
     return True, html.H4(skill_name), html.Div(content, className="modal-content-wrapper")
 
 
-register_page(__name__, path="/skilldamage", name="Skill Damage", title="Skill Damage", layout=layout)
+register_page(
+    __name__,
+    path="/expedition33/skilldamage",
+    name="Skill Damage",
+    title="Skill Damage",
+    layout=layout,
+)
