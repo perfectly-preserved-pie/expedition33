@@ -728,14 +728,30 @@ layout = dbc.Container(
     [
         html.H1("Skill Damage Calculator"),
         dbc.Alert(
-            html.Span(
+            html.Div(
                 [
-                    "Data courtesy of ",
-                    html.A(
-                        "JohnnyDamajer",
-                        href="https://docs.google.com/spreadsheets/d/1hU299Jof7Ygtg1JmbITeBxFXh5iHtOIBPB1gVCRil6o/",
-                        target="_blank",
-                        rel="noopener noreferrer",
+                    html.Span(
+                        [
+                            "Skill data courtesy of ",
+                            html.A(
+                                "JohnnyDamajer",
+                                href="https://docs.google.com/spreadsheets/d/1hU299Jof7Ygtg1JmbITeBxFXh5iHtOIBPB1gVCRil6o/",
+                                target="_blank",
+                                rel="noopener noreferrer",
+                            ),
+                        ]
+                    ),
+                    html.Span(
+                        [
+                            "Pictos data courtesy of ",
+                            html.A(
+                                "ErikLeb and Blueye95",
+                                href="https://docs.google.com/spreadsheets/d/1-d2ybbBy94JiVF6Mo_0-jmICTueH4oyN2q9_Va2gXbw/edit?gid=1062723312#gid=1062723312",
+                                target="_blank",
+                                rel="noopener noreferrer",
+                            ),
+                        ],
+                        className="d-block mt-1",
                     ),
                 ]
             ),
