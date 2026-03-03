@@ -21,6 +21,7 @@ from games.expedition33.calculator.core import (
 )
 from games.expedition33.helpers import build_title_card, format_value
 from games.expedition33.calculator.pictos import PICTO_OPTIONS, PictoSummary
+from games.expedition33.calculator.weapons import WEAPON_LEVEL_OPTIONS, weapon_options_for, WeaponSummary
 
 
 def build_badges(character: str, row: CalculatorRow, current_cost: str) -> ComponentChildren:
@@ -104,6 +105,46 @@ def build_picto_section(picto_summary: PictoSummary) -> Any | None:
     return dmc.Paper(details, withBorder=True, p="md", radius="md")
 
 
+def build_weapon_section(weapon_summary: WeaponSummary) -> Any | None:
+    """Build the weapon summary section for the result card.
+
+    Args:
+        weapon_summary: The evaluated weapon summary for the selected state.
+
+    Returns:
+        A Dash component describing active and inactive weapon passives, or
+        ``None`` when no supported weapon is selected.
+    """
+
+    if not weapon_summary["active"] and not weapon_summary["inactive"]:
+        return None
+
+    details: ComponentChildren = [dmc.Text("Weapon", fw=600)]
+
+    if weapon_summary["active"]:
+        details.append(
+            html.Div(
+                [
+                    html.Strong("Active: "),
+                    html.Span("; ".join(f"{item['detail']}: {item['effect']}" for item in weapon_summary["active"])),
+                ]
+            )
+        )
+
+    if weapon_summary["inactive"]:
+        details.append(
+            html.Div(
+                [
+                    html.Strong("Inactive: "),
+                    html.Span("; ".join(f"{item['detail']}: {item['effect']}" for item in weapon_summary["inactive"])),
+                ],
+                style={"color": "var(--mantine-color-dimmed)"},
+            )
+        )
+
+    return dmc.Paper(details, withBorder=True, p="md", radius="md")
+
+
 def build_result_body(
     character: str,
     row: CalculatorRow,
@@ -111,6 +152,7 @@ def build_result_body(
     current_cost: str,
     skill_result: CalculationResult,
     picto_summary: PictoSummary,
+    weapon_summary: WeaponSummary,
 ) -> ComponentChildren:
     """Build the main result card body for the selected state.
 
@@ -121,6 +163,7 @@ def build_result_body(
         current_cost: The AP cost string after state-based adjustments.
         skill_result: The calculated result for the selected skill state.
         picto_summary: The evaluated Picto summary for the selected state.
+        weapon_summary: The evaluated weapon summary for the selected state.
 
     Returns:
         The list of Dash children rendered inside the primary result card.
@@ -189,6 +232,7 @@ def build_result_body(
             ),
             dbc.Alert(skill_result["warning"], color="warning", className="mb-0") if skill_result.get("warning") else None,
             build_picto_section(picto_summary),
+            build_weapon_section(weapon_summary),
             dmc.Paper(
                 [
                     dmc.Text("Notes", fw=600),
@@ -202,13 +246,14 @@ def build_result_body(
     )
 
 
-def build_summary_body(row: CalculatorRow, attack: float | None, picto_factor: float) -> ComponentChildren:
+def build_summary_body(row: CalculatorRow, attack: float | None, bonus_factor: float) -> ComponentChildren:
     """Build the spreadsheet breakpoint summary table.
 
     Args:
         row: The selected skill row.
         attack: The effective attack power used for the displayed damage values.
-        picto_factor: The combined Picto multiplier applied to the summary rows.
+        bonus_factor: The combined Picto and weapon multiplier applied to the
+            summary rows.
 
     Returns:
         The list of Dash children rendered inside the summary card body.
@@ -222,8 +267,8 @@ def build_summary_body(row: CalculatorRow, attack: float | None, picto_factor: f
             [
                 html.Td(entry["label"]),
                 html.Td(format_multiplier(entry["value"])),
-                html.Td(format_multiplier(round(entry["value"] * picto_factor, 2))),
-                html.Td(format_value(calculate_damage(attack, entry["value"] * picto_factor))),
+                html.Td(format_multiplier(round(entry["value"] * bonus_factor, 2))),
+                html.Td(format_value(calculate_damage(attack, entry["value"] * bonus_factor))),
             ]
         )
         for entry in rows
@@ -309,17 +354,40 @@ pictos_select = dmc.MultiSelect(
     description="Only directly calculable damage Pictos/Lumina from the sheet are listed here.",
 )
 
+weapon_select = dmc.Select(
+    id="exp33-calculator-weapon",
+    label="Weapon",
+    data=weapon_options_for(DEFAULT_CHARACTER),
+    value=None,
+    searchable=True,
+    clearable=True,
+    placeholder="Select a supported damage-modifying weapon",
+    description="Only weapon passives with direct damage effects the calculator can model are listed here.",
+)
+
+weapon_level_select = html.Div(
+    dmc.Select(
+        id="exp33-calculator-weapon-level",
+        label="Weapon level",
+        value="20",
+        data=WEAPON_LEVEL_OPTIONS,
+        clearable=False,
+    ),
+    id="exp33-calculator-control-weapon-level",
+    style=HIDDEN_STYLE,
+)
+
 picto_controls = dbc.Collapse(
     dbc.Card(
         [
-            dbc.CardHeader("Pictos Setup"),
+            dbc.CardHeader("Bonus Setup"),
             dbc.CardBody(
                 dmc.Stack(
                     [
                         html.Div(
                             dmc.Select(
                                 id="exp33-calculator-picto-attack-type",
-                                label="Attack type",
+                                label="Attack type override",
                                 value="Auto",
                                 data=[
                                     {"label": "Auto detect", "value": "Auto"},
@@ -447,12 +515,114 @@ picto_controls = dbc.Collapse(
                             style=HIDDEN_STYLE,
                         ),
                         html.Div(
+                            dmc.NumberInput(
+                                id="exp33-calculator-weapon-unhit-turns",
+                                label="No-hit stacks / turns",
+                                value=0,
+                                min=0,
+                                max=5,
+                                step=1,
+                            ),
+                            id="exp33-calculator-weapon-control-unhit-turns",
+                            style=HIDDEN_STYLE,
+                        ),
+                        html.Div(
+                            dmc.NumberInput(
+                                id="exp33-calculator-weapon-stain-consume-stacks",
+                                label="Stain-consume stacks",
+                                value=0,
+                                min=0,
+                                max=5,
+                                step=1,
+                            ),
+                            id="exp33-calculator-weapon-control-stain-consume-stacks",
+                            style=HIDDEN_STYLE,
+                        ),
+                        html.Div(
+                            dmc.NumberInput(
+                                id="exp33-calculator-weapon-light-stains",
+                                label="Active Light Stains",
+                                value=0,
+                                min=0,
+                                max=4,
+                                step=1,
+                            ),
+                            id="exp33-calculator-weapon-control-light-stains",
+                            style=HIDDEN_STYLE,
+                        ),
+                        html.Div(
+                            dmc.NumberInput(
+                                id="exp33-calculator-weapon-dark-stains",
+                                label="Active Dark Stains",
+                                value=0,
+                                min=0,
+                                max=4,
+                                step=1,
+                            ),
+                            id="exp33-calculator-weapon-control-dark-stains",
+                            style=HIDDEN_STYLE,
+                        ),
+                        html.Div(
+                            dmc.NumberInput(
+                                id="exp33-calculator-weapon-self-burn-stacks",
+                                label="Self Burn stacks",
+                                value=0,
+                                min=0,
+                                step=1,
+                            ),
+                            id="exp33-calculator-weapon-control-self-burn-stacks",
+                            style=HIDDEN_STYLE,
+                        ),
+                        html.Div(
+                            dmc.NumberInput(
+                                id="exp33-calculator-weapon-moon-charges",
+                                label="Moon charges",
+                                value=0,
+                                min=0,
+                                step=1,
+                            ),
+                            id="exp33-calculator-weapon-control-moon-charges",
+                            style=HIDDEN_STYLE,
+                        ),
+                        html.Div(
+                            dmc.Switch(id="exp33-calculator-weapon-cursed", label="Character is Cursed"),
+                            id="exp33-calculator-weapon-control-cursed",
+                            style=HIDDEN_STYLE,
+                        ),
+                        html.Div(
+                            dmc.NumberInput(
+                                id="exp33-calculator-weapon-ap-consumed",
+                                label="AP consumed by attack",
+                                value=0,
+                                min=0,
+                                step=1,
+                            ),
+                            id="exp33-calculator-weapon-control-ap-consumed",
+                            style=HIDDEN_STYLE,
+                        ),
+                        html.Div(
+                            dmc.Switch(id="exp33-calculator-weapon-critical-hit", label="Current hit crits"),
+                            id="exp33-calculator-weapon-control-critical-hit",
+                            style=HIDDEN_STYLE,
+                        ),
+                        html.Div(
+                            dmc.Select(
+                                id="exp33-calculator-weapon-monoco-mask-type",
+                                label="Current Monoco mask",
+                                value="Balanced",
+                                data=["Balanced", "Agile", "Caster", "Heavy", "Almighty"],
+                                clearable=False,
+                            ),
+                            id="exp33-calculator-weapon-control-monoco-mask-type",
+                            style=HIDDEN_STYLE,
+                        ),
+                        html.Div(
                             dmc.Text(
-                                "Selected Pictos do not need extra setup.",
+                                "Selected Pictos and weapon passives do not need extra setup.",
                                 c="dimmed",
                                 size="sm",
                             ),
-                            id="exp33-calculator-picto-empty",
+                            id="exp33-calculator-bonus-empty",
                             style=HIDDEN_STYLE,
                         ),
                     ],
@@ -746,10 +916,10 @@ layout = dbc.Container(
                     ),
                     html.Span(
                         [
-                            "Pictos data courtesy of ",
+                            "Pictos and weapon data courtesy of ",
                             html.A(
                                 "ErikLeb and Blueye95",
-                                href="https://docs.google.com/spreadsheets/d/1-d2ybbBy94JiVF6Mo_0-jmICTueH4oyN2q9_Va2gXbw/edit?gid=1062723312#gid=1062723312",
+                                href="https://docs.google.com/spreadsheets/d/1-d2ybbBy94JiVF6Mo_0-jmICTueH4oyN2q9_Va2gXbw/",
                                 target="_blank",
                                 rel="noopener noreferrer",
                             ),
@@ -772,7 +942,7 @@ layout = dbc.Container(
         ),
         dcc.Markdown(
             "Choose a character, pick a skill, then adjust the relevant combat state. "
-            "The result card shows the applied breakpoint or derived formula and estimates damage from your current Attack Power."
+            "The result card shows the applied breakpoint or derived formula and estimates damage from your current Attack Power, weapon passives, and Pictos."
         ),
         dbc.Row(
             [
@@ -791,6 +961,8 @@ layout = dbc.Container(
                                             ]
                                         ),
                                         attack_input,
+                                        weapon_select,
+                                        weapon_level_select,
                                         pictos_select,
                                         picto_controls,
                                         calculator_controls,

@@ -17,6 +17,7 @@ from games.expedition33.calculator.core import (
     text_from_row,
 )
 from games.expedition33.calculator.pictos import PictoSummary
+from games.expedition33.calculator.weapons import WeaponSummary
 
 SCIEL_FORETELL_RATES = {
     "End Slice": 0.20,
@@ -491,13 +492,18 @@ def calculate_sciel(row: CalculatorRow, state: CalculatorState) -> CalculationRe
     return base_result(row)
 
 
-def apply_verso_rank_bonus(rank: str, skill_result: CalculationResult) -> CalculationResult:
+def apply_verso_rank_bonus(
+    rank: str,
+    skill_result: CalculationResult,
+    enabled: bool = True,
+) -> CalculationResult:
     """Apply Verso's general rank multiplier when appropriate.
 
     Args:
         rank: The currently selected Verso rank.
         skill_result: The current calculated result before the general rank
             bonus is applied.
+        enabled: Whether the general rank bonus should be applied at all.
 
     Returns:
         The original result when no general rank bonus applies, otherwise a new
@@ -506,7 +512,7 @@ def apply_verso_rank_bonus(rank: str, skill_result: CalculationResult) -> Calcul
 
     multiplier = skill_result.get("multiplier")
     source = skill_result.get("source", "")
-    if multiplier is None or source == "SRankMAX":
+    if multiplier is None or source == "SRankMAX" or not enabled:
         return skill_result
 
     rank_bonus = {
@@ -528,12 +534,18 @@ def apply_verso_rank_bonus(rank: str, skill_result: CalculationResult) -> Calcul
     )
 
 
-def calculate_verso(row: CalculatorRow, state: CalculatorState) -> CalculationResult:
+def calculate_verso(
+    row: CalculatorRow,
+    state: CalculatorState,
+    disable_rank_bonus: bool = False,
+) -> CalculationResult:
     """Calculate Verso's effective skill multiplier.
 
     Args:
         row: The selected Verso skill row.
         state: The normalized Verso control state.
+        disable_rank_bonus: Whether weapon effects should suppress Verso's
+            generic rank bonus.
 
     Returns:
         A normalized calculation result describing the effective multiplier and
@@ -555,23 +567,23 @@ def calculate_verso(row: CalculatorRow, state: CalculatorState) -> CalculationRe
         if stunned and rank == "S" and maximum is not None:
             return result(maximum, "Stunned target at S Rank", "SRankMAX")
         if stunned and conditional is not None:
-            return apply_verso_rank_bonus(rank, result(conditional, "Stunned target", "ConDmg"))
-        return apply_verso_rank_bonus(rank, base_result(row))
+            return apply_verso_rank_bonus(rank, result(conditional, "Stunned target", "ConDmg"), not disable_rank_bonus)
+        return apply_verso_rank_bonus(rank, base_result(row), not disable_rank_bonus)
 
     if skill == "Steeled Strike":
         if rank == "S" and uses >= 2 and maximum is not None:
             return result(maximum, "S Rank with full setup", "SRankMAX")
         if rank == "S" and conditional is not None:
-            return apply_verso_rank_bonus(rank, result(conditional, "S Rank", "ConDmg"))
-        return apply_verso_rank_bonus(rank, base_result(row))
+            return apply_verso_rank_bonus(rank, result(conditional, "S Rank", "ConDmg"), not disable_rank_bonus)
+        return apply_verso_rank_bonus(rank, base_result(row), not disable_rank_bonus)
 
     if skill == "Follow Up":
         if rank == "S" and shots >= 10 and maximum is not None:
             return result(maximum, "10 shots at S Rank", "SRankMAX")
         if shots > 0:
             multiplier = round((base_multiplier or 0) * (1 + (0.5 * shots)), 2)
-            return apply_verso_rank_bonus(rank, result(multiplier, f"{shots} ranged shot(s)", "Derived from note text"))
-        return apply_verso_rank_bonus(rank, base_result(row))
+            return apply_verso_rank_bonus(rank, result(multiplier, f"{shots} ranged shot(s)", "Derived from note text"), not disable_rank_bonus)
+        return apply_verso_rank_bonus(rank, base_result(row), not disable_rank_bonus)
 
     if skill == "Ascending Assault":
         if rank == "S" and uses >= 6 and maximum is not None:
@@ -579,24 +591,24 @@ def calculate_verso(row: CalculatorRow, state: CalculatorState) -> CalculationRe
         if uses >= 2:
             multiplier = round((base_multiplier or 0) * (1 + (0.3 * min(uses - 1, 5))), 2)
             if uses >= 6 and conditional is not None:
-                return apply_verso_rank_bonus(rank, result(conditional, "6th use", "ConDmg"))
-            return apply_verso_rank_bonus(rank, result(multiplier, f"Use {uses}", "Derived from note text"))
-        return apply_verso_rank_bonus(rank, base_result(row))
+                return apply_verso_rank_bonus(rank, result(conditional, "6th use", "ConDmg"), not disable_rank_bonus)
+            return apply_verso_rank_bonus(rank, result(multiplier, f"Use {uses}", "Derived from note text"), not disable_rank_bonus)
+        return apply_verso_rank_bonus(rank, base_result(row), not disable_rank_bonus)
 
     if skill == "Speed Burst":
         if speed_bonus and maximum is not None:
             return result(maximum, "C Rank with full speed bonus", "SRankMAX")
         if rank_at_least(rank, "C") and conditional is not None:
-            return apply_verso_rank_bonus(rank, result(conditional, "C Rank", "ConDmg"))
-        return apply_verso_rank_bonus(rank, base_result(row))
+            return apply_verso_rank_bonus(rank, result(conditional, "C Rank", "ConDmg"), not disable_rank_bonus)
+        return apply_verso_rank_bonus(rank, base_result(row), not disable_rank_bonus)
 
     if rank == "S" and maximum is not None and skill not in {"Ranged Attack", "Basic Attack", "Counter"}:
         return result(maximum, "S Rank", "SRankMAX")
 
     if rank_at_least(rank, required_rank) and conditional is not None:
-        return apply_verso_rank_bonus(rank, result(conditional, f"{required_rank} Rank", "ConDmg"))
+        return apply_verso_rank_bonus(rank, result(conditional, f"{required_rank} Rank", "ConDmg"), not disable_rank_bonus)
 
-    return apply_verso_rank_bonus(rank, base_result(row))
+    return apply_verso_rank_bonus(rank, base_result(row), not disable_rank_bonus)
 
 
 CALCULATORS = {
@@ -613,6 +625,7 @@ def calculate_skill_result(
     character: str,
     row: CalculatorRow,
     state: CalculatorState,
+    disable_verso_rank_bonus: bool = False,
 ) -> CalculationResult:
     """Dispatch calculation to the active character-specific handler.
 
@@ -620,11 +633,15 @@ def calculate_skill_result(
         character: The calculator character id.
         row: The selected skill row for that character.
         state: The normalized character state from the UI.
+        disable_verso_rank_bonus: Whether weapon effects should suppress
+            Verso's generic rank bonus.
 
     Returns:
         The calculated result produced by the character-specific calculator.
     """
 
+    if character == "verso":
+        return calculate_verso(row, state, disable_verso_rank_bonus)
     return CALCULATORS[character](row, state)
 
 
@@ -676,6 +693,32 @@ def apply_picto_bonus(skill_result: CalculationResult, picto_summary: PictoSumma
         round(multiplier * total_factor, 2),
         skill_result["scenario"],
         f"{skill_result['source']} + Pictos",
+        skill_result.get("warning"),
+    )
+
+
+def apply_weapon_bonus(skill_result: CalculationResult, weapon_summary: WeaponSummary) -> CalculationResult:
+    """Apply the combined weapon multiplier to a skill result.
+
+    Args:
+        skill_result: The calculated result before weapon scaling.
+        weapon_summary: The evaluated weapon summary containing the combined
+            multiplier and passive details.
+
+    Returns:
+        The original result when no weapon multiplier applies, otherwise a new
+        result with the weapon factor folded into the multiplier.
+    """
+
+    multiplier = skill_result.get("multiplier")
+    total_factor = weapon_summary["total_factor"]
+    if multiplier is None or not weapon_summary["active"] or total_factor == 1:
+        return skill_result
+
+    return result(
+        round(multiplier * total_factor, 2),
+        skill_result["scenario"],
+        f"{skill_result['source']} + Weapon",
         skill_result.get("warning"),
     )
 

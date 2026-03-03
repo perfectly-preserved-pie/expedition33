@@ -22,12 +22,20 @@ from games.expedition33.calculator.core import (
 )
 from games.expedition33.calculator.layout import build_result_body, build_summary_body
 from games.expedition33.calculator.logic import (
+    apply_weapon_bonus,
     apply_picto_bonus,
     build_skill_control_styles,
     calculate_skill_result,
     resolve_picto_attack_type,
 )
 from games.expedition33.calculator.pictos import evaluate_pictos, required_picto_controls
+from games.expedition33.calculator.weapons import (
+    evaluate_weapon,
+    normalize_weapon_level,
+    required_weapon_character_controls,
+    required_weapon_controls,
+    weapon_options_for,
+)
 
 
 def build_character_section_styles(active_character: str) -> tuple[list[str], CharacterStyles]:
@@ -253,6 +261,66 @@ def build_picto_state(
     }
 
 
+def build_weapon_state(
+    resolved_attack_type: str,
+    picto_shield_points: NumericInput,
+    weapon_unhit_turns: NumericInput,
+    weapon_stain_consume_stacks: NumericInput,
+    weapon_light_stains: NumericInput,
+    weapon_dark_stains: NumericInput,
+    weapon_self_burn_stacks: NumericInput,
+    sciel_foretell: NumericInput,
+    sciel_twilight: ToggleInput,
+    weapon_moon_charges: NumericInput,
+    weapon_cursed: ToggleInput,
+    weapon_ap_consumed: NumericInput,
+    weapon_critical_hit: ToggleInput,
+    weapon_monoco_mask_type: str | None,
+    verso_rank: str | None,
+) -> dict[str, Any]:
+    """Normalize raw callback inputs into weapon evaluation state.
+
+    Args:
+        resolved_attack_type: The attack type used for attack-specific bonuses.
+        picto_shield_points: Shared shield-point input used by Pictos and
+            weapons.
+        weapon_unhit_turns: Consecutive no-hit turns or stacks.
+        weapon_stain_consume_stacks: Lune's current stain-consume stack count.
+        weapon_light_stains: The active Light Stain count.
+        weapon_dark_stains: The active Dark Stain count.
+        weapon_self_burn_stacks: Maelle's self Burn stack count.
+        sciel_foretell: Sciel's applied foretell count.
+        sciel_twilight: Whether Twilight is active for Sciel.
+        weapon_moon_charges: The active Moon charge count.
+        weapon_cursed: Whether the character is Cursed.
+        weapon_ap_consumed: The AP consumed by the current attack.
+        weapon_critical_hit: Whether the current hit crits.
+        weapon_monoco_mask_type: Monoco's current mask.
+        verso_rank: Verso's current rank.
+
+    Returns:
+        A normalized weapon-state dictionary consumed by ``evaluate_weapon``.
+    """
+
+    return {
+        "attack_type": resolved_attack_type,
+        "shield_points": picto_shield_points,
+        "unhit_turns": weapon_unhit_turns,
+        "stain_consume_stacks": weapon_stain_consume_stacks,
+        "light_stains": weapon_light_stains,
+        "dark_stains": weapon_dark_stains,
+        "self_burn_stacks": weapon_self_burn_stacks,
+        "foretell": sciel_foretell,
+        "twilight": sciel_twilight,
+        "moon_charges": weapon_moon_charges,
+        "cursed": weapon_cursed,
+        "ap_consumed": weapon_ap_consumed,
+        "critical_hit": weapon_critical_hit,
+        "monoco_mask_type": weapon_monoco_mask_type,
+        "rank": verso_rank,
+    }
+
+
 @callback(
     Output("exp33-calculator-skill", "options"),
     Output("exp33-calculator-skill", "value"),
@@ -277,6 +345,27 @@ def update_skill_dropdown(character: str | None) -> tuple[list[SkillOption], str
         default_skill = options[0]["value"]
     attack = CALCULATOR_DATA[selected_character]["default_attack"]
     return options, default_skill, attack
+
+
+@callback(
+    Output("exp33-calculator-weapon", "data"),
+    Output("exp33-calculator-weapon", "value"),
+    Output("exp33-calculator-weapon-level", "value"),
+    Input("exp33-calculator-character", "value"),
+)
+def update_weapon_dropdown(character: str | None) -> tuple[list[SkillOption], None, str]:
+    """Refresh the weapon dropdown when the character changes.
+
+    Args:
+        character: The selected calculator character id.
+
+    Returns:
+        A tuple of ``(options, selected_weapon, selected_level)`` for the
+        active character.
+    """
+
+    selected_character = character or DEFAULT_CHARACTER
+    return weapon_options_for(selected_character), None, "20"
 
 
 @callback(
@@ -321,13 +410,22 @@ def update_skill_dropdown(character: str | None) -> tuple[list[SkillOption], str
     Output("exp33-calculator-control-verso-speed-bonus", "style"),
     Input("exp33-calculator-character", "value"),
     Input("exp33-calculator-skill", "value"),
+    Input("exp33-calculator-weapon", "value"),
+    Input("exp33-calculator-weapon-level", "value"),
 )
-def sync_visible_controls(character: str | None, skill: str | None) -> tuple[Any, ...]:
+def sync_visible_controls(
+    character: str | None,
+    skill: str | None,
+    weapon: str | None,
+    weapon_level: str | None,
+) -> tuple[Any, ...]:
     """Show only the setup controls relevant to the selected skill.
 
     Args:
         character: The selected calculator character id.
         skill: The currently selected skill name.
+        weapon: The currently selected weapon name, if any.
+        weapon_level: The selected weapon unlock level.
 
     Returns:
         A Dash callback tuple containing the active accordion item plus the
@@ -338,6 +436,8 @@ def sync_visible_controls(character: str | None, skill: str | None) -> tuple[Any
     active_item, styles = build_character_section_styles(active_character)
     row = get_row(active_character, skill)
     control_styles = build_skill_control_styles(active_character, row)
+    for control in required_weapon_character_controls(active_character, weapon, weapon_level):
+        control_styles[control] = VISIBLE_STYLE
 
     return (
         active_item,
@@ -383,6 +483,7 @@ def sync_visible_controls(character: str | None, skill: str | None) -> tuple[Any
 
 
 @callback(
+    Output("exp33-calculator-control-weapon-level", "style"),
     Output("exp33-calculator-pictos-collapse", "is_open"),
     Output("exp33-calculator-picto-control-attack-type", "style"),
     Output("exp33-calculator-picto-control-below-10-health", "style"),
@@ -401,22 +502,48 @@ def sync_visible_controls(character: str | None, skill: str | None) -> tuple[Any
     Output("exp33-calculator-picto-control-parry-stacks", "style"),
     Output("exp33-calculator-picto-control-warming-up-stacks", "style"),
     Output("exp33-calculator-picto-control-first-hit", "style"),
-    Output("exp33-calculator-picto-empty", "style"),
+    Output("exp33-calculator-weapon-control-unhit-turns", "style"),
+    Output("exp33-calculator-weapon-control-stain-consume-stacks", "style"),
+    Output("exp33-calculator-weapon-control-light-stains", "style"),
+    Output("exp33-calculator-weapon-control-dark-stains", "style"),
+    Output("exp33-calculator-weapon-control-self-burn-stacks", "style"),
+    Output("exp33-calculator-weapon-control-moon-charges", "style"),
+    Output("exp33-calculator-weapon-control-cursed", "style"),
+    Output("exp33-calculator-weapon-control-ap-consumed", "style"),
+    Output("exp33-calculator-weapon-control-critical-hit", "style"),
+    Output("exp33-calculator-weapon-control-monoco-mask-type", "style"),
+    Output("exp33-calculator-bonus-empty", "style"),
+    Input("exp33-calculator-character", "value"),
     Input("exp33-calculator-pictos", "value"),
+    Input("exp33-calculator-weapon", "value"),
+    Input("exp33-calculator-weapon-level", "value"),
 )
-def sync_visible_picto_controls(pictos: list[str] | None) -> tuple[Any, ...]:
-    """Show only the Picto setup controls required by the current selection.
+def sync_visible_bonus_controls(
+    character: str | None,
+    pictos: list[str] | None,
+    weapon: str | None,
+    weapon_level: str | None,
+) -> tuple[Any, ...]:
+    """Show only the bonus-setup controls required by the current selection.
 
     Args:
+        character: The selected calculator character id.
         pictos: The selected Picto names from the multi-select.
+        weapon: The currently selected weapon name, if any.
+        weapon_level: The selected weapon unlock level.
 
     Returns:
         A Dash callback tuple containing the collapse state and visibility
-        styles for each Picto setup control.
+        styles for each Picto and weapon setup control.
     """
 
-    required_controls = required_picto_controls(pictos)
-    has_selection = bool(pictos)
+    selected_character = character or DEFAULT_CHARACTER
+    required_controls = required_picto_controls(pictos) | required_weapon_controls(
+        selected_character,
+        weapon,
+        normalize_weapon_level(weapon_level),
+    )
+    has_selection = bool(pictos) or bool(weapon)
 
     def style_for(control: str) -> StyleRule:
         """Return the visible style only for required Picto controls.
@@ -432,6 +559,7 @@ def sync_visible_picto_controls(pictos: list[str] | None) -> tuple[Any, ...]:
         return VISIBLE_STYLE if control in required_controls else HIDDEN_STYLE
 
     return (
+        VISIBLE_STYLE if weapon else HIDDEN_STYLE,
         has_selection,
         style_for("attack_type"),
         style_for("below_10_health"),
@@ -450,6 +578,16 @@ def sync_visible_picto_controls(pictos: list[str] | None) -> tuple[Any, ...]:
         style_for("parry_stacks"),
         style_for("warming_up_stacks"),
         style_for("first_hit"),
+        style_for("unhit_turns"),
+        style_for("stain_consume_stacks"),
+        style_for("light_stains"),
+        style_for("dark_stains"),
+        style_for("self_burn_stacks"),
+        style_for("moon_charges"),
+        style_for("cursed"),
+        style_for("ap_consumed"),
+        style_for("critical_hit"),
+        style_for("monoco_mask_type"),
         VISIBLE_STYLE if has_selection and not required_controls else HIDDEN_STYLE,
     )
 
@@ -460,6 +598,8 @@ def sync_visible_picto_controls(pictos: list[str] | None) -> tuple[Any, ...]:
     Input("exp33-calculator-character", "value"),
     Input("exp33-calculator-skill", "value"),
     Input("exp33-calculator-attack", "value"),
+    Input("exp33-calculator-weapon", "value"),
+    Input("exp33-calculator-weapon-level", "value"),
     Input("exp33-calculator-pictos", "value"),
     Input("exp33-calculator-picto-attack-type", "value"),
     Input("exp33-calculator-picto-below-10-health", "checked"),
@@ -478,6 +618,16 @@ def sync_visible_picto_controls(pictos: list[str] | None) -> tuple[Any, ...]:
     Input("exp33-calculator-picto-parry-stacks", "value"),
     Input("exp33-calculator-picto-warming-up-stacks", "value"),
     Input("exp33-calculator-picto-first-hit", "checked"),
+    Input("exp33-calculator-weapon-unhit-turns", "value"),
+    Input("exp33-calculator-weapon-stain-consume-stacks", "value"),
+    Input("exp33-calculator-weapon-light-stains", "value"),
+    Input("exp33-calculator-weapon-dark-stains", "value"),
+    Input("exp33-calculator-weapon-self-burn-stacks", "value"),
+    Input("exp33-calculator-weapon-moon-charges", "value"),
+    Input("exp33-calculator-weapon-cursed", "checked"),
+    Input("exp33-calculator-weapon-ap-consumed", "value"),
+    Input("exp33-calculator-weapon-critical-hit", "checked"),
+    Input("exp33-calculator-weapon-monoco-mask-type", "value"),
     Input("exp33-calculator-gustave-charges", "value"),
     Input("exp33-calculator-lune-stains", "value"),
     Input("exp33-calculator-lune-turns", "value"),
@@ -509,6 +659,8 @@ def update_calculator_result(
     character: str | None,
     skill: str | None,
     attack: NumericInput,
+    weapon: str | None,
+    weapon_level: str | None,
     pictos: list[str] | None,
     picto_attack_type: str | None,
     picto_below_10_health: ToggleInput,
@@ -527,6 +679,16 @@ def update_calculator_result(
     picto_parry_stacks: NumericInput,
     picto_warming_up_stacks: NumericInput,
     picto_first_hit: ToggleInput,
+    weapon_unhit_turns: NumericInput,
+    weapon_stain_consume_stacks: NumericInput,
+    weapon_light_stains: NumericInput,
+    weapon_dark_stains: NumericInput,
+    weapon_self_burn_stacks: NumericInput,
+    weapon_moon_charges: NumericInput,
+    weapon_cursed: ToggleInput,
+    weapon_ap_consumed: NumericInput,
+    weapon_critical_hit: ToggleInput,
+    weapon_monoco_mask_type: str | None,
     gustave_charges: NumericInput,
     lune_stains: NumericInput,
     lune_turns: NumericInput,
@@ -560,6 +722,8 @@ def update_calculator_result(
         character: The selected calculator character id.
         skill: The currently selected skill name.
         attack: The raw attack power input.
+        weapon: The selected weapon name.
+        weapon_level: The selected weapon unlock level.
         pictos: The selected Picto names.
         picto_attack_type: The optional Picto attack-type override.
         picto_below_10_health: Whether the user is below 10% health.
@@ -578,6 +742,16 @@ def update_calculator_result(
         picto_parry_stacks: The current parry stack count.
         picto_warming_up_stacks: The current Warming Up stack count.
         picto_first_hit: Whether the current hit is the first hit of battle.
+        weapon_unhit_turns: Consecutive turns without taking damage.
+        weapon_stain_consume_stacks: Lune's current stain-consume stack count.
+        weapon_light_stains: The active Light Stain count.
+        weapon_dark_stains: The active Dark Stain count.
+        weapon_self_burn_stacks: Maelle's self Burn stack count.
+        weapon_moon_charges: The active Moon charge count.
+        weapon_cursed: Whether the character is Cursed.
+        weapon_ap_consumed: The AP consumed by the current attack.
+        weapon_critical_hit: Whether the current hit crits.
+        weapon_monoco_mask_type: Monoco's current mask.
         gustave_charges: Gustave's Overcharge count.
         lune_stains: Lune's active stain count.
         lune_turns: The number of turns elapsed for Lune.
@@ -661,13 +835,38 @@ def update_calculator_result(
         picto_warming_up_stacks,
         picto_first_hit,
     )
+    weapon_state = build_weapon_state(
+        resolved_picto_attack_type,
+        picto_shield_points,
+        weapon_unhit_turns,
+        weapon_stain_consume_stacks,
+        weapon_light_stains,
+        weapon_dark_stains,
+        weapon_self_burn_stacks,
+        sciel_foretell,
+        sciel_twilight,
+        weapon_moon_charges,
+        weapon_cursed,
+        weapon_ap_consumed,
+        weapon_critical_hit,
+        weapon_monoco_mask_type,
+        verso_rank,
+    )
 
     picto_summary = evaluate_pictos(pictos, picto_state)
-    skill_result = calculate_skill_result(selected_character, row, states[selected_character])
+    weapon_summary = evaluate_weapon(selected_character, weapon, weapon_level, row, weapon_state)
+    skill_result = calculate_skill_result(
+        selected_character,
+        row,
+        states[selected_character],
+        weapon_summary["suppress_verso_rank_bonus"],
+    )
+    skill_result = apply_weapon_bonus(skill_result, weapon_summary)
     skill_result = apply_picto_bonus(skill_result, picto_summary)
     current_cost = calculate_current_cost(selected_character, row, states[selected_character])
+    total_bonus_factor = picto_summary["total_factor"] * weapon_summary["total_factor"]
 
     return (
-        build_result_body(selected_character, row, attack_value, current_cost, skill_result, picto_summary),
-        build_summary_body(row, attack_value, picto_summary["total_factor"]),
+        build_result_body(selected_character, row, attack_value, current_cost, skill_result, picto_summary, weapon_summary),
+        build_summary_body(row, attack_value, total_bonus_factor),
     )
