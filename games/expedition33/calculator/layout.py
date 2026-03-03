@@ -4,6 +4,7 @@ from typing import Any
 import dash_bootstrap_components as dbc
 import dash_mantine_components as dmc
 from games.expedition33.calculator.core import (
+    AffinityDetails,
     build_sheet_rows,
     calculate_damage,
     CalculationResult,
@@ -17,6 +18,7 @@ from games.expedition33.calculator.core import (
     DEFAULT_SKILLS,
     format_multiplier,
     HIDDEN_STYLE,
+    skill_element,
     skill_options_for,
 )
 from games.expedition33.helpers import build_title_card, format_value
@@ -157,6 +159,7 @@ def build_result_body(
     skill_result: CalculationResult,
     picto_summary: PictoSummary,
     weapon_summary: WeaponSummary,
+    affinity: AffinityDetails,
 ) -> ComponentChildren:
     """Build the main result card body for the selected state.
 
@@ -174,8 +177,21 @@ def build_result_body(
     """
 
     multiplier = skill_result.get("multiplier")
-    damage = calculate_damage(attack, multiplier if isinstance(multiplier, (int, float)) else None)
+    effective_multiplier = None
+    if isinstance(multiplier, (int, float)):
+        effective_multiplier = round(multiplier * affinity["factor"], 2)
+    damage = calculate_damage(attack, effective_multiplier)
     notes = clean_text(row.get("Notes"))
+    element = skill_element(row) or "None"
+    affinity_label = (
+        {
+            "neutral": "Neutral",
+            "weak": "Weakness",
+            "resist": "Resistance",
+        }[affinity["affinity"]]
+        if affinity["applies"]
+        else "Not applicable"
+    )
 
     return compact(
         [
@@ -192,6 +208,11 @@ def build_result_body(
                                     style={"color": "var(--mantine-color-dimmed)"},
                                 ),
                                 html.H2(format_value(damage), className="mb-0"),
+                                dmc.Text(
+                                    f"Element: {element} | Affinity: {affinity_label}",
+                                    size="sm",
+                                    style={"color": "var(--mantine-color-dimmed)"},
+                                ),
                             ],
                             withBorder=True,
                             p="lg",
@@ -208,7 +229,18 @@ def build_result_body(
                                     size="sm",
                                     style={"color": "var(--mantine-color-dimmed)"},
                                 ),
-                                html.H2(format_multiplier(multiplier), className="mb-0"),
+                                html.H2(format_multiplier(effective_multiplier), className="mb-0"),
+                                dmc.Text(
+                                    (
+                                        f"Base {format_multiplier(multiplier)} x affinity {affinity['factor']:g}"
+                                        if isinstance(multiplier, (int, float)) and affinity["applies"]
+                                        else f"Base {format_multiplier(multiplier)}"
+                                        if isinstance(multiplier, (int, float))
+                                        else "No direct damage multiplier"
+                                    ),
+                                    size="sm",
+                                    style={"color": "var(--mantine-color-dimmed)"},
+                                ),
                             ],
                             withBorder=True,
                             p="lg",
@@ -250,7 +282,12 @@ def build_result_body(
     )
 
 
-def build_summary_body(row: CalculatorRow, attack: float | None, bonus_factor: float) -> ComponentChildren:
+def build_summary_body(
+    row: CalculatorRow,
+    attack: float | None,
+    bonus_factor: float,
+    affinity: AffinityDetails,
+) -> ComponentChildren:
     """Build the spreadsheet breakpoint summary table.
 
     Args:
@@ -265,14 +302,18 @@ def build_summary_body(row: CalculatorRow, attack: float | None, bonus_factor: f
 
     rows = build_sheet_rows(row)
     header_attack = format_value(attack) if attack is not None else "-"
+    element = skill_element(row) or "None"
+    affinity_suffix = ""
+    if affinity["applies"]:
+        affinity_suffix = f" | {element} {affinity['affinity'].title()} ({affinity['factor']:g}x)"
 
     table_rows = [
         html.Tr(
             [
                 html.Td(entry["label"]),
                 html.Td(format_multiplier(entry["value"])),
-                html.Td(format_multiplier(round(entry["value"] * bonus_factor, 2))),
-                html.Td(format_value(calculate_damage(attack, entry["value"] * bonus_factor))),
+                html.Td(format_multiplier(round(entry["value"] * bonus_factor * affinity["factor"], 2))),
+                html.Td(format_value(calculate_damage(attack, entry["value"] * bonus_factor * affinity["factor"]))),
             ]
         )
         for entry in rows
@@ -287,7 +328,7 @@ def build_summary_body(row: CalculatorRow, attack: float | None, bonus_factor: f
                             html.Th("Sheet Scenario"),
                             html.Th("Sheet Multiplier"),
                             html.Th("Effective Multiplier"),
-                            html.Th(f"Damage @ {header_attack} Attack Power"),
+                            html.Th(f"Damage @ {header_attack} Attack Power{affinity_suffix}"),
                         ]
                     )
                 ),
@@ -345,6 +386,20 @@ attack_input = dmc.NumberInput(
     value=CALCULATOR_DATA[DEFAULT_CHARACTER]["default_attack"],
     min=1,
     step=1,
+)
+
+enemy_affinity_select = dmc.Select(
+    id="exp33-calculator-enemy-affinity",
+    label="Enemy affinity",
+    value="neutral",
+    data=[
+        {"label": "Neutral", "value": "neutral"},
+        {"label": "Weakness", "value": "weak"},
+        {"label": "Resistance", "value": "resist"},
+    ],
+    clearable=False,
+    allowDeselect=False,
+    description="Only affects elemental skills. Weakness = 1.5x, Resistance = 0.5x.",
 )
 
 pictos_select = dmc.MultiSelect(
@@ -1031,6 +1086,7 @@ layout = dbc.Container(
                                             ]
                                         ),
                                         attack_input,
+                                        enemy_affinity_select,
                                         weapon_select,
                                         weapon_level_select,
                                         pictos_select,

@@ -13,8 +13,10 @@ from games.expedition33.calculator.core import (
     DEFAULT_SKILLS,
     get_row,
     HIDDEN_STYLE,
+    normalize_affinity,
     NumericInput,
     parse_number,
+    resolve_affinity,
     skill_options_for,
     SkillOption,
     StyleRule,
@@ -634,6 +636,7 @@ def sync_visible_bonus_controls(
     Input("exp33-calculator-character", "value"),
     Input("exp33-calculator-skill", "value"),
     Input("exp33-calculator-attack", "value"),
+    Input("exp33-calculator-enemy-affinity", "value"),
     Input("exp33-calculator-weapon", "value"),
     Input("exp33-calculator-weapon-level", "value"),
     Input("exp33-calculator-pictos", "value"),
@@ -701,6 +704,7 @@ def update_calculator_result(
     character: str | None,
     skill: str | None,
     attack: NumericInput,
+    enemy_affinity: str | None,
     weapon: str | None,
     weapon_level: str | None,
     pictos: list[str] | None,
@@ -770,6 +774,7 @@ def update_calculator_result(
         character: The selected calculator character id.
         skill: The currently selected skill name.
         attack: The raw attack power input.
+        enemy_affinity: The selected enemy elemental affinity modifier.
         weapon: The selected weapon name.
         weapon_level: The selected weapon unlock level.
         pictos: The selected Picto names.
@@ -840,6 +845,7 @@ def update_calculator_result(
     selected_character = character or DEFAULT_CHARACTER
     row = get_row(selected_character, skill)
     attack_value = parse_number(attack) or CALCULATOR_DATA[selected_character]["default_attack"]
+    affinity = resolve_affinity(row, normalize_affinity(enemy_affinity))
     resolved_picto_attack_type = resolve_picto_attack_type(row, picto_attack_type)
 
     states = build_calculator_states(
@@ -927,6 +933,6 @@ def update_calculator_result(
     total_bonus_factor = picto_summary["total_factor"] * weapon_summary["total_factor"]
 
     return (
-        build_result_body(selected_character, row, attack_value, current_cost, skill_result, picto_summary, weapon_summary),
-        build_summary_body(row, attack_value, total_bonus_factor),
+        build_result_body(selected_character, row, attack_value, current_cost, skill_result, picto_summary, weapon_summary, affinity),
+        build_summary_body(row, attack_value, total_bonus_factor, affinity),
     )

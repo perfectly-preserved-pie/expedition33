@@ -40,6 +40,15 @@ class CalculatorPayload(TypedDict):
     skills: dict[str, CalculatorRow]
 
 
+class AffinityDetails(TypedDict):
+    """Resolved elemental affinity context for a selected skill."""
+
+    element: str
+    affinity: str
+    factor: float
+    applies: bool
+
+
 CSV_DIR = Path(__file__).resolve().parents[3] / "assets" / "expedition33" / "clair_skill_damage"
 
 CHARACTER_META = {
@@ -225,6 +234,39 @@ def calculate_damage(attack: float | None, multiplier: float | None) -> float | 
     if attack is None or multiplier is None:
         return None
     return round(attack * multiplier, 2)
+
+
+def skill_element(row: CalculatorRow) -> str:
+    """Read the skill's elemental typing from the loaded sheet row."""
+
+    return clean_text(text_from_row(row, "Damage Element", "Element"))
+
+
+def normalize_affinity(value: str | None) -> str:
+    """Normalize the selected affinity option to a supported value."""
+
+    normalized = clean_text(value).lower()
+    return normalized if normalized in {"neutral", "weak", "resist"} else "neutral"
+
+
+def resolve_affinity(row: CalculatorRow, affinity: str | None) -> AffinityDetails:
+    """Resolve whether an affinity modifier applies to the current skill."""
+
+    element = skill_element(row)
+    normalized_affinity = normalize_affinity(affinity)
+    applies = bool(element) and element.lower() not in {"physical", "none", "non-elemental", "neutral"}
+    factor = 1.0
+    if applies and normalized_affinity == "weak":
+        factor = 1.5
+    elif applies and normalized_affinity == "resist":
+        factor = 0.5
+
+    return {
+        "element": element,
+        "affinity": normalized_affinity,
+        "factor": factor,
+        "applies": applies,
+    }
 
 
 def result(
