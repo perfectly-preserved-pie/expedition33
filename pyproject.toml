@@ -1,7 +1,7 @@
 [project]
-name = "expedition33"
-version = "0.1.0"
-description = "Clair Obscure: Expedition 33 Database"
+name = "Ludex"
+version = "0.2.0"
+description = "Game databases, tables, and grids for whatever game I happen to be obssessed with."
 #authors = ["Test <w/e@example.com>"]
 license = {text = "MIT"}
 
