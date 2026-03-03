@@ -10,6 +10,7 @@ import dash_mantine_components as dmc
 import pandas as pd
 
 from games.expedition33.helpers import clean_frame, format_value
+from games.expedition33.pictos import PICTO_OPTIONS, PictoSummary, evaluate_pictos, required_picto_controls
 
 CalculatorRow: TypeAlias = dict[str, Any]
 CalculatorState: TypeAlias = dict[str, Any]
@@ -719,6 +720,38 @@ def calculate_skill_result(
     return calculators[character](row, state)
 
 
+def resolve_picto_attack_type(row: CalculatorRow, override: str | None) -> str:
+    """Resolve the attack type used by attack-specific Picto bonuses."""
+    if override and override != "Auto":
+        return override
+
+    skill = clean_text(row.get("Skill")).lower()
+    if skill == "basic attack":
+        return "Base Attack"
+    if skill == "counter":
+        return "Counterattack"
+    if skill == "ranged attack":
+        return "Free Aim"
+    if "gradient attack" in skill:
+        return "Gradient Attack"
+    return "Skill"
+
+
+def apply_picto_bonus(skill_result: CalculationResult, picto_summary: PictoSummary) -> CalculationResult:
+    """Apply the combined Picto multiplier to the calculated skill result."""
+    multiplier = skill_result.get("multiplier")
+    total_factor = picto_summary["total_factor"]
+    if multiplier is None or not picto_summary["active"] or total_factor == 1:
+        return skill_result
+
+    return {
+        "multiplier": round(multiplier * total_factor, 2),
+        "scenario": skill_result["scenario"],
+        "source": f"{skill_result['source']} + Pictos",
+        "warning": skill_result.get("warning"),
+    }
+
+
 def build_badges(character: str, row: CalculatorRow, current_cost: str) -> ComponentChildren:
     """Build metadata badges shown above the result cards."""
     difficulty = clean_text(row.get("Game Description")).title()
@@ -750,12 +783,44 @@ def build_badges(character: str, row: CalculatorRow, current_cost: str) -> Compo
     return badges
 
 
+def build_picto_section(picto_summary: PictoSummary) -> Any | None:
+    """Summarize active and inactive Pictos in the result card."""
+    if not picto_summary["active"] and not picto_summary["inactive"]:
+        return None
+
+    details: ComponentChildren = [dmc.Text("Pictos", fw=600)]
+
+    if picto_summary["active"]:
+        details.append(
+            html.Div(
+                [
+                    html.Strong("Active: "),
+                    html.Span("; ".join(f"{item['detail']}: {item['effect']}" for item in picto_summary["active"])),
+                ]
+            )
+        )
+
+    if picto_summary["inactive"]:
+        details.append(
+            html.Div(
+                [
+                    html.Strong("Inactive: "),
+                    html.Span("; ".join(f"{item['detail']}: {item['effect']}" for item in picto_summary["inactive"])),
+                ],
+                style={"color": "var(--mantine-color-dimmed)"},
+            )
+        )
+
+    return dmc.Paper(details, withBorder=True, p="md", radius="md")
+
+
 def build_result_body(
     character: str,
     row: CalculatorRow,
     attack: float | None,
     current_cost: str,
     skill_result: CalculationResult,
+    picto_summary: PictoSummary,
 ) -> ComponentChildren:
     """Build the result card body for the selected skill state."""
     multiplier = skill_result.get("multiplier")
@@ -820,6 +885,7 @@ def build_result_body(
                 radius="md",
             ),
             dbc.Alert(skill_result["warning"], color="warning", className="mb-0") if skill_result.get("warning") else None,
+            build_picto_section(picto_summary),
             dmc.Paper(
                 [
                     dmc.Text("Notes", fw=600),
@@ -833,7 +899,7 @@ def build_result_body(
     )
 
 
-def build_summary_body(row: CalculatorRow, attack: float | None) -> ComponentChildren:
+def build_summary_body(row: CalculatorRow, attack: float | None, picto_factor: float) -> ComponentChildren:
     """Build the spreadsheet breakpoint summary table."""
     rows = build_sheet_rows(row)
     header_attack = format_value(attack) if attack is not None else "-"
@@ -843,7 +909,8 @@ def build_summary_body(row: CalculatorRow, attack: float | None) -> ComponentChi
             [
                 html.Td(entry["label"]),
                 html.Td(format_multiplier(entry["value"])),
-                html.Td(format_value(calculate_damage(attack, entry["value"]))),
+                html.Td(format_multiplier(round(entry["value"] * picto_factor, 2))),
+                html.Td(format_value(calculate_damage(attack, entry["value"] * picto_factor))),
             ]
         )
         for entry in rows
@@ -856,7 +923,8 @@ def build_summary_body(row: CalculatorRow, attack: float | None) -> ComponentChi
                     html.Tr(
                         [
                             html.Th("Sheet Scenario"),
-                            html.Th("Multiplier"),
+                            html.Th("Sheet Multiplier"),
+                            html.Th("Effective Multiplier"),
                             html.Th(f"Damage @ {header_attack} Attack Power"),
                         ]
                     )
@@ -869,6 +937,7 @@ def build_summary_body(row: CalculatorRow, attack: float | None) -> ComponentChi
             className="mb-0",
         )
     ]
+
 
 def build_character_section_styles(active_character: str) -> tuple[list[str], CharacterStyles]:
     """Return accordion visibility styles for the active character."""
@@ -1042,6 +1111,174 @@ attack_input = dmc.NumberInput(
     value=CALCULATOR_DATA[DEFAULT_CHARACTER]["default_attack"],
     min=1,
     step=1,
+)
+
+pictos_select = dmc.MultiSelect(
+    id="exp33-calculator-pictos",
+    label="Pictos",
+    data=PICTO_OPTIONS,
+    value=[],
+    searchable=True,
+    clearable=True,
+    placeholder="Select supported damage Pictos",
+    description="Only directly calculable damage Pictos from the sheet are listed here.",
+)
+
+picto_controls = dbc.Collapse(
+    dbc.Card(
+        [
+            dbc.CardHeader("Pictos Setup"),
+            dbc.CardBody(
+                dmc.Stack(
+                    [
+                        html.Div(
+                            dmc.Select(
+                                id="exp33-calculator-picto-attack-type",
+                                label="Attack type",
+                                value="Auto",
+                                data=[
+                                    {"label": "Auto detect", "value": "Auto"},
+                                    {"label": "Skill", "value": "Skill"},
+                                    {"label": "Base Attack", "value": "Base Attack"},
+                                    {"label": "Counterattack", "value": "Counterattack"},
+                                    {"label": "Free Aim", "value": "Free Aim"},
+                                    {"label": "Gradient Attack", "value": "Gradient Attack"},
+                                ],
+                                clearable=False,
+                            ),
+                            id="exp33-calculator-picto-control-attack-type",
+                            style=HIDDEN_STYLE,
+                        ),
+                        html.Div(
+                            dmc.Switch(id="exp33-calculator-picto-below-10-health", label="Health below 10%"),
+                            id="exp33-calculator-picto-control-below-10-health",
+                            style=HIDDEN_STYLE,
+                        ),
+                        html.Div(
+                            dmc.Switch(id="exp33-calculator-picto-target-burning", label="Target is burning"),
+                            id="exp33-calculator-picto-control-target-burning",
+                            style=HIDDEN_STYLE,
+                        ),
+                        html.Div(
+                            dmc.Switch(id="exp33-calculator-picto-target-stunned", label="Target is stunned"),
+                            id="exp33-calculator-picto-control-target-stunned",
+                            style=HIDDEN_STYLE,
+                        ),
+                        html.Div(
+                            dmc.Switch(id="exp33-calculator-picto-exhausted", label="Character is Exhausted"),
+                            id="exp33-calculator-picto-control-exhausted",
+                            style=HIDDEN_STYLE,
+                        ),
+                        html.Div(
+                            dmc.Switch(id="exp33-calculator-picto-full-health", label="Character is at full Health"),
+                            id="exp33-calculator-picto-control-full-health",
+                            style=HIDDEN_STYLE,
+                        ),
+                        html.Div(
+                            dmc.Switch(id="exp33-calculator-picto-unhit", label="No hit received yet"),
+                            id="exp33-calculator-picto-control-unhit",
+                            style=HIDDEN_STYLE,
+                        ),
+                        html.Div(
+                            dmc.Switch(id="exp33-calculator-picto-inverted", label="Character is Inverted"),
+                            id="exp33-calculator-picto-control-inverted",
+                            style=HIDDEN_STYLE,
+                        ),
+                        html.Div(
+                            dmc.Switch(id="exp33-calculator-picto-consume-ap", label="Powered Attack consumed 1 AP"),
+                            id="exp33-calculator-picto-control-consume-ap",
+                            style=HIDDEN_STYLE,
+                        ),
+                        html.Div(
+                            dmc.NumberInput(
+                                id="exp33-calculator-picto-shield-points",
+                                label="Shield Points",
+                                value=0,
+                                min=0,
+                                step=1,
+                            ),
+                            id="exp33-calculator-picto-control-shield-points",
+                            style=HIDDEN_STYLE,
+                        ),
+                        html.Div(
+                            dmc.Switch(id="exp33-calculator-picto-fighting-alone", label="Character is fighting alone"),
+                            id="exp33-calculator-picto-control-fighting-alone",
+                            style=HIDDEN_STYLE,
+                        ),
+                        html.Div(
+                            dmc.Switch(id="exp33-calculator-picto-all-allies-alive", label="All allies are alive"),
+                            id="exp33-calculator-picto-control-all-allies-alive",
+                            style=HIDDEN_STYLE,
+                        ),
+                        html.Div(
+                            dmc.NumberInput(
+                                id="exp33-calculator-picto-status-effects",
+                                label="Status Effects on self",
+                                value=0,
+                                min=0,
+                                step=1,
+                            ),
+                            id="exp33-calculator-picto-control-status-effects",
+                            style=HIDDEN_STYLE,
+                        ),
+                        html.Div(
+                            dmc.NumberInput(
+                                id="exp33-calculator-picto-dodge-stacks",
+                                label="Empowering Dodge stacks",
+                                value=0,
+                                min=0,
+                                max=10,
+                                step=1,
+                            ),
+                            id="exp33-calculator-picto-control-dodge-stacks",
+                            style=HIDDEN_STYLE,
+                        ),
+                        html.Div(
+                            dmc.NumberInput(
+                                id="exp33-calculator-picto-parry-stacks",
+                                label="Empowering Parry stacks",
+                                value=0,
+                                min=0,
+                                step=1,
+                            ),
+                            id="exp33-calculator-picto-control-parry-stacks",
+                            style=HIDDEN_STYLE,
+                        ),
+                        html.Div(
+                            dmc.NumberInput(
+                                id="exp33-calculator-picto-warming-up-stacks",
+                                label="Warming Up stacks",
+                                value=0,
+                                min=0,
+                                max=5,
+                                step=1,
+                            ),
+                            id="exp33-calculator-picto-control-warming-up-stacks",
+                            style=HIDDEN_STYLE,
+                        ),
+                        html.Div(
+                            dmc.Switch(id="exp33-calculator-picto-first-hit", label="This is the first hit"),
+                            id="exp33-calculator-picto-control-first-hit",
+                            style=HIDDEN_STYLE,
+                        ),
+                        html.Div(
+                            dmc.Text(
+                                "Selected Pictos do not need extra setup.",
+                                c="dimmed",
+                                size="sm",
+                            ),
+                            id="exp33-calculator-picto-empty",
+                            style=HIDDEN_STYLE,
+                        ),
+                    ],
+                    gap="sm",
+                )
+            ),
+        ],
+        className="mt-3",
+    ),
+    id="exp33-calculator-pictos-collapse",
+    is_open=False,
 )
 
 calculator_controls = dbc.Accordion(
@@ -1351,6 +1588,8 @@ layout = dbc.Container(
                                             ]
                                         ),
                                         attack_input,
+                                        pictos_select,
+                                        picto_controls,
                                         calculator_controls,
                                     ],
                                     gap="md",
@@ -1551,11 +1790,104 @@ def sync_visible_controls(
 
 
 @callback(
+    Output("exp33-calculator-pictos-collapse", "is_open"),
+    Output("exp33-calculator-picto-control-attack-type", "style"),
+    Output("exp33-calculator-picto-control-below-10-health", "style"),
+    Output("exp33-calculator-picto-control-target-burning", "style"),
+    Output("exp33-calculator-picto-control-target-stunned", "style"),
+    Output("exp33-calculator-picto-control-exhausted", "style"),
+    Output("exp33-calculator-picto-control-full-health", "style"),
+    Output("exp33-calculator-picto-control-unhit", "style"),
+    Output("exp33-calculator-picto-control-inverted", "style"),
+    Output("exp33-calculator-picto-control-consume-ap", "style"),
+    Output("exp33-calculator-picto-control-shield-points", "style"),
+    Output("exp33-calculator-picto-control-fighting-alone", "style"),
+    Output("exp33-calculator-picto-control-all-allies-alive", "style"),
+    Output("exp33-calculator-picto-control-status-effects", "style"),
+    Output("exp33-calculator-picto-control-dodge-stacks", "style"),
+    Output("exp33-calculator-picto-control-parry-stacks", "style"),
+    Output("exp33-calculator-picto-control-warming-up-stacks", "style"),
+    Output("exp33-calculator-picto-control-first-hit", "style"),
+    Output("exp33-calculator-picto-empty", "style"),
+    Input("exp33-calculator-pictos", "value"),
+)
+def sync_visible_picto_controls(
+    pictos: list[str] | None,
+) -> tuple[
+    bool,
+    StyleRule,
+    StyleRule,
+    StyleRule,
+    StyleRule,
+    StyleRule,
+    StyleRule,
+    StyleRule,
+    StyleRule,
+    StyleRule,
+    StyleRule,
+    StyleRule,
+    StyleRule,
+    StyleRule,
+    StyleRule,
+    StyleRule,
+    StyleRule,
+    StyleRule,
+    StyleRule,
+]:
+    """Show only the Picto setup controls required by the selected Pictos."""
+    required_controls = required_picto_controls(pictos)
+    has_selection = bool(pictos)
+
+    def style_for(control: str) -> StyleRule:
+        return VISIBLE_STYLE if control in required_controls else HIDDEN_STYLE
+
+    return (
+        has_selection,
+        style_for("attack_type"),
+        style_for("below_10_health"),
+        style_for("target_burning"),
+        style_for("target_stunned"),
+        style_for("exhausted"),
+        style_for("full_health"),
+        style_for("unhit"),
+        style_for("inverted"),
+        style_for("consume_ap"),
+        style_for("shield_points"),
+        style_for("fighting_alone"),
+        style_for("all_allies_alive"),
+        style_for("status_effects"),
+        style_for("dodge_stacks"),
+        style_for("parry_stacks"),
+        style_for("warming_up_stacks"),
+        style_for("first_hit"),
+        VISIBLE_STYLE if has_selection and not required_controls else HIDDEN_STYLE,
+    )
+
+
+@callback(
     Output("exp33-calculator-result-body", "children"),
     Output("exp33-calculator-summary-body", "children"),
     Input("exp33-calculator-character", "value"),
     Input("exp33-calculator-skill", "value"),
     Input("exp33-calculator-attack", "value"),
+    Input("exp33-calculator-pictos", "value"),
+    Input("exp33-calculator-picto-attack-type", "value"),
+    Input("exp33-calculator-picto-below-10-health", "checked"),
+    Input("exp33-calculator-picto-target-burning", "checked"),
+    Input("exp33-calculator-picto-target-stunned", "checked"),
+    Input("exp33-calculator-picto-exhausted", "checked"),
+    Input("exp33-calculator-picto-full-health", "checked"),
+    Input("exp33-calculator-picto-unhit", "checked"),
+    Input("exp33-calculator-picto-inverted", "checked"),
+    Input("exp33-calculator-picto-consume-ap", "checked"),
+    Input("exp33-calculator-picto-shield-points", "value"),
+    Input("exp33-calculator-picto-fighting-alone", "checked"),
+    Input("exp33-calculator-picto-all-allies-alive", "checked"),
+    Input("exp33-calculator-picto-status-effects", "value"),
+    Input("exp33-calculator-picto-dodge-stacks", "value"),
+    Input("exp33-calculator-picto-parry-stacks", "value"),
+    Input("exp33-calculator-picto-warming-up-stacks", "value"),
+    Input("exp33-calculator-picto-first-hit", "checked"),
     Input("exp33-calculator-gustave-charges", "value"),
     Input("exp33-calculator-lune-stains", "value"),
     Input("exp33-calculator-lune-turns", "value"),
@@ -1587,6 +1919,24 @@ def update_calculator_result(
     character: str | None,
     skill: str | None,
     attack: NumericInput,
+    pictos: list[str] | None,
+    picto_attack_type: str | None,
+    picto_below_10_health: ToggleInput,
+    picto_target_burning: ToggleInput,
+    picto_target_stunned: ToggleInput,
+    picto_exhausted: ToggleInput,
+    picto_full_health: ToggleInput,
+    picto_unhit: ToggleInput,
+    picto_inverted: ToggleInput,
+    picto_consume_ap: ToggleInput,
+    picto_shield_points: NumericInput,
+    picto_fighting_alone: ToggleInput,
+    picto_all_allies_alive: ToggleInput,
+    picto_status_effects: NumericInput,
+    picto_dodge_stacks: NumericInput,
+    picto_parry_stacks: NumericInput,
+    picto_warming_up_stacks: NumericInput,
+    picto_first_hit: ToggleInput,
     gustave_charges: NumericInput,
     lune_stains: NumericInput,
     lune_turns: NumericInput,
@@ -1619,6 +1969,7 @@ def update_calculator_result(
     selected_character = character or DEFAULT_CHARACTER
     row = get_row(selected_character, skill)
     attack_value = parse_number(attack) or CALCULATOR_DATA[selected_character]["default_attack"]
+    resolved_picto_attack_type = resolve_picto_attack_type(row, picto_attack_type)
 
     states: dict[str, CalculatorState] = {
         "gustave": {
@@ -1662,12 +2013,34 @@ def update_calculator_result(
         },
     }
 
+    picto_state = {
+        "attack_type": resolved_picto_attack_type,
+        "below_10_health": picto_below_10_health,
+        "target_burning": picto_target_burning,
+        "target_stunned": picto_target_stunned,
+        "exhausted": picto_exhausted,
+        "full_health": picto_full_health,
+        "unhit": picto_unhit,
+        "inverted": picto_inverted,
+        "consume_ap": picto_consume_ap,
+        "shield_points": picto_shield_points,
+        "fighting_alone": picto_fighting_alone,
+        "all_allies_alive": picto_all_allies_alive,
+        "status_effects": picto_status_effects,
+        "dodge_stacks": picto_dodge_stacks,
+        "parry_stacks": picto_parry_stacks,
+        "warming_up_stacks": picto_warming_up_stacks,
+        "first_hit": picto_first_hit,
+    }
+
+    picto_summary = evaluate_pictos(pictos, picto_state)
     skill_result = calculate_skill_result(selected_character, row, states[selected_character])
+    skill_result = apply_picto_bonus(skill_result, picto_summary)
     current_cost = calculate_current_cost(selected_character, row, states[selected_character])
 
     return (
-        build_result_body(selected_character, row, attack_value, current_cost, skill_result),
-        build_summary_body(row, attack_value),
+        build_result_body(selected_character, row, attack_value, current_cost, skill_result, picto_summary),
+        build_summary_body(row, attack_value, picto_summary["total_factor"]),
     )
 
 
