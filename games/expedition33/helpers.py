@@ -1,5 +1,6 @@
 from __future__ import annotations
 from dash import html
+from dash_iconify import DashIconify
 from pandas.api.types import is_numeric_dtype
 from pathlib import Path
 from typing import Any
@@ -22,6 +23,15 @@ def build_title_card(title: str, subtitle: str = "For those who come after.") ->
         [
             html.H3(title, className="card-title"),
             html.I(subtitle, style={"marginBottom": "10px"}),
+            html.Br(),
+            html.I(
+                children=[DashIconify(icon="octicon:mark-github-16")],
+                style={
+                    "margin-right": "5px",
+                    "margin-left": "0px",
+                },
+            ),
+        html.A("GitHub", href="https://github.com/perfectly-preserved-pie/ludex/tree/main/games/expedition33", target="_blank"),
         ],
         body=True,
     )
