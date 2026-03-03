@@ -11,7 +11,7 @@ Using their data, I built a custom calculator that models the various branching 
 
 The calculator helps answer complex questions like:
 - How much damage does Lune’s `Thunderfall` do with 3 light stains when I have `Empowering Dodge` Picto equipped, have successfully dodged 6 attacks, and the `Coralim` weapon rank 10 passive bonus unlocked?
-- How much does Maelle’s `Combustion` benefit from `Offensive Stance' and how does that change when I have 7 burn stacks on the target?
+- How much does Maelle’s `Combustion` benefit from Offensive Stance and how does that change when I have 7 burn stacks on the target?
 - How much does Verso’s `Berserk Slash` benefit from rank vs missing health? Is it better to use it when my health is low or to get to S-rank for the stronger multiplier?
 
 But it can also be used for simpler questions like:
