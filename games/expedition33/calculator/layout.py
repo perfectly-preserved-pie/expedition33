@@ -280,6 +280,7 @@ character_select = dmc.Select(
     value=DEFAULT_CHARACTER,
     data=[{"label": meta["label"], "value": key} for key, meta in CHARACTER_META.items()],
     clearable=False,
+    allowDeselect=False,
 )
 
 skill_dropdown = dcc.Dropdown(
