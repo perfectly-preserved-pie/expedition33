@@ -1,7 +1,7 @@
 # Ludex
 Latin "ludus" (game) + dex (index)
 
-This is a simple home page and collection of utilities for whatever game I'm currently obsessed with, built with Dash. I wanted to have a collection of interactive tools that help me understand game systems and make informed decisions, without having to dig through spreadsheets or wiki pages. 
+This is a simple home page and collection of utilities for whatever game I'm currently obsessed with, built with Dash. I wanted to have a collection of interactive tools that help me understand game mechanics and make informed decisions, without having to dig through spreadsheets or wiki pages. 
 
 I made a Dash AG Grid enemy database for Xenosaga a few years ago and found it really fun to build and actually super useful, so I decided to expand that concept into a more general project that can host tools for multiple games.
 
@@ -9,13 +9,8 @@ I made a Dash AG Grid enemy database for Xenosaga a few years ago and found it r
 
 Current pages in this repository:
 
-- `Xenosaga`
-  - Enemy database with sortable, filterable AG Grid tables for Episodes I, II, and III
-  - Row-click modal for full enemy details
-- `Clair Obscur: Expedition 33`
-  - Skill damage data browser (not that useful since I have the calculator below)
-  - Skill damage calculator
-  - Zone level reference table
+- `Xenosaga`: enemy database with sortable, filterable AG Grid tables for Episodes I, II, and III, plus a row-click modal for full enemy details. Docs: [Xenosaga README](games/xenosaga/readme.md)
+- `Clair Obscur: Expedition 33`: skill damage data browser, skill damage calculator, and zone level reference table. Docs: [Expedition 33 calculator README](games/expedition33/calculator/README.md)
 
 ## Stack
 
@@ -88,6 +83,4 @@ Once registered, the home tree in `app.py` will automatically group the page und
 ## Notes
 
 - The top-level app is intentionally generic so multiple games can live in one project.
-- Some game-specific pages have their own README files with deeper implementation notes and source attribution.
--- Clair Obscur: Expedition 33: see `games/expedition33/calculator/README.md` for details on the design and data sources for the Expedition 33 skill damage calculator.
--- Xenosaga: see `games/xenosaga/README.md` for details on the enemy database pages, including data sources and design notes.
+- Game-specific documentation lives in [Expedition 33 calculator README](games/expedition33/calculator/README.md) and [Xenosaga README](games/xenosaga/readme.md).
