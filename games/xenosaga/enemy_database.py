@@ -107,8 +107,6 @@ grid = dag.AgGrid(
     style={"width": "100%", "height": "calc(100vh - 330px)"},
     dashGridOptions={
         "theme": ag_grid_theme,
-        "pagination": True,
-        "paginationPageSize": 50,
     },
 )
 
