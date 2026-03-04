@@ -67,8 +67,21 @@ def build_column_defs(frame: pd.DataFrame) -> list[dict[str, Any]]:
         except (TypeError, ValueError):
             return False
 
+    boolean_columns = get_boolean_like_columns(frame)
+
     column_defs: list[dict[str, Any]] = []
     for field in frame.columns:
+        if field in boolean_columns:
+            col_def = {
+                "field": field,
+                "cellDataType": "boolean",
+                "filter": "agTextColumnFilter",
+            }
+            if field == "Name":
+                col_def["pinned"] = "left"
+            column_defs.append(col_def)
+            continue
+
         numeric_col = is_numeric_col(field)
         col_def: dict[str, Any] = {
             "field": field,
@@ -84,6 +97,41 @@ def build_column_defs(frame: pd.DataFrame) -> list[dict[str, Any]]:
     return column_defs
 
 
+def get_boolean_like_columns(frame: pd.DataFrame) -> set[str]:
+    """Return columns whose non-empty values are textual booleans."""
+
+    boolean_columns: set[str] = set()
+    boolean_tokens = {"yes", "no", "true", "false"}
+
+    for field in frame.columns:
+        non_na_values = frame[field].dropna()
+        if non_na_values.empty:
+            continue
+
+        normalized_values = {
+            str(value).strip().lower() for value in non_na_values if str(value).strip() != ""
+        }
+        if normalized_values and normalized_values <= boolean_tokens:
+            boolean_columns.add(field)
+
+    return boolean_columns
+
+
+def normalize_grid_frame(frame: pd.DataFrame) -> pd.DataFrame:
+    """Convert textual booleans to real bools and replace missing values with ``None``."""
+
+    normalized_frame = frame.copy()
+    boolean_columns = get_boolean_like_columns(normalized_frame)
+    boolean_map = {"yes": True, "true": True, "no": False, "false": False}
+
+    for field in boolean_columns:
+        normalized_frame[field] = normalized_frame[field].map(
+            lambda value: boolean_map.get(str(value).strip().lower()) if pd.notnull(value) else None
+        )
+
+    return normalized_frame.astype(object).where(pd.notnull(normalized_frame), None)
+
+
 def format_value(value: Any) -> str:
     """Format a cell value for modal or grid display.
 
@@ -97,6 +145,8 @@ def format_value(value: Any) -> str:
 
     if value is None:
         return "N/A"
+    if isinstance(value, bool):
+        return "Yes" if value else "No"
     if isinstance(value, str) and value == "":
         return "N/A"
     if not isinstance(value, str) and pd.isna(value):

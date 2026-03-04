@@ -3,11 +3,16 @@ from assets.xenosaga.load_sqlite_database import load_sqlite_database
 from dash import Input, Output, State, callback, callback_context, dcc, html, no_update, register_page
 from dash_iconify import DashIconify
 from dash.exceptions import PreventUpdate
-from games.xenosaga.helpers import apply_element_style, build_column_defs, format_value, load_episode_rows
+from games.xenosaga.helpers import (
+    apply_element_style,
+    build_column_defs,
+    format_value,
+    load_episode_rows,
+    normalize_grid_frame,
+)
 from typing import Any
 import dash_ag_grid as dag
 import dash_bootstrap_components as dbc
-import pandas as pd
 
 EPISODE_TABS = {
     "ep1": {"label": "Episode I", "table": "episode1"},
@@ -35,7 +40,7 @@ with load_sqlite_database() as conn:
 
 episode_payloads = {}
 for tab_id, frame in episode_frames.items():
-    safe_frame = frame.astype(object).where(pd.notnull(frame), None)
+    safe_frame = normalize_grid_frame(frame)
     episode_payloads[tab_id] = {
         "rowData": safe_frame.to_dict("records"),
         "columnDefs": build_column_defs(frame),
